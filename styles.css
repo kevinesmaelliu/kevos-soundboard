@@ -943,6 +943,19 @@ body::before {
     position: relative;
 }
 
+.mp3-icon {
+    background: linear-gradient(135deg, #ff6b35 0%, #ff9558 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mp3-icon::before {
+    content: '🎵';
+    font-size: 24px;
+}
+
 .settings-icon::before {
     content: '';
     position: absolute;
@@ -1032,6 +1045,416 @@ body::before {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 50%;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.mp3player-icon {
+    background: linear-gradient(135deg, #ff6b35 0%, #ff9558 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mp3player-icon::before {
+    content: '🎵';
+    font-size: 28px;
+}
+
+/* Custom window styling */
+.custom-window {
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+/* Soundboard Device Styles */
+.soundboard-device-standalone {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, 
+        rgba(250, 245, 240, 0.98) 0%,
+        var(--cream) 25%,
+        var(--warm-cream) 75%,
+        rgba(184, 179, 173, 0.4) 100%);
+    border-radius: 28px;
+    padding: 0;
+    box-shadow: 
+        0 12px 32px rgba(45, 42, 37, 0.3),
+        inset 0 2px 6px rgba(255, 255, 255, 0.4),
+        inset 0 -2px 6px rgba(184, 179, 173, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.soundboard-window-controls {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    gap: 8px;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.3) 0%,
+        rgba(184, 179, 173, 0.1) 100%);
+    border-bottom: 1px solid rgba(184, 179, 173, 0.2);
+}
+
+.soundboard-control-btn {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.soundboard-close {
+    background: linear-gradient(145deg, #ff6b6b, #ff5252);
+}
+
+.soundboard-minimize {
+    background: linear-gradient(145deg, #ffd93d, #ffca28);
+}
+
+.soundboard-maximize {
+    background: linear-gradient(145deg, #6bcf7f, #4caf50);
+}
+
+.soundboard-control-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.soundboard-brand {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--warm-gray);
+    letter-spacing: 1px;
+    opacity: 0.7;
+}
+
+.soundboard-controls-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(184, 179, 173, 0.05) 100%);
+    border-bottom: 1px solid rgba(184, 179, 173, 0.15);
+}
+
+.soundboard-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--charcoal);
+    letter-spacing: 1.5px;
+}
+
+.soundboard-status-lights {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-light {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.power-light.active {
+    background: radial-gradient(circle, #4ade80, #22c55e);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+
+.ready-light.active {
+    background: radial-gradient(circle, #60a5fa, #3b82f6);
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.6);
+}
+
+.status-text {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--warm-gray);
+    letter-spacing: 0.5px;
+}
+
+.soundboard-volume-section {
+    display: flex;
+    align-items: center;
+    padding: 1.5rem;
+    gap: 2rem;
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(184, 179, 173, 0.05) 100%);
+    border-bottom: 1px solid rgba(184, 179, 173, 0.15);
+}
+
+/* Shared Volume Knob Styles (used by both MP3 player and soundboard) */
+.mp3-volume-knob-large {
+    width: 80px;
+    height: 80px;
+    position: relative;
+    cursor: pointer;
+    user-select: none;
+}
+
+.knob-outer-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+.knob-marking {
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    width: 2px;
+    height: 8px;
+    background: rgba(184, 179, 173, 0.6);
+    border-radius: 1px;
+    transform-origin: center 36px;
+    margin-left: -1px;
+}
+
+.mp3-knob-body {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, 
+        rgba(250, 245, 240, 0.95) 0%,
+        var(--cream) 30%,
+        var(--warm-cream) 70%,
+        rgba(184, 179, 173, 0.4) 100%);
+    box-shadow: 
+        4px 4px 12px rgba(184, 179, 173, 0.4),
+        -2px -2px 8px rgba(255, 255, 255, 0.6),
+        inset 0 2px 4px rgba(255, 255, 255, 0.4);
+    transition: all 0.1s ease;
+}
+
+.mp3-knob-body:hover {
+    box-shadow: 
+        4px 4px 14px rgba(184, 179, 173, 0.5),
+        -2px -2px 10px rgba(255, 255, 255, 0.7),
+        inset 0 2px 5px rgba(255, 255, 255, 0.5);
+}
+
+.mp3-knob-indicator {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 12px;
+    background: linear-gradient(180deg, var(--primary-orange), var(--soft-orange));
+    border-radius: 1.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    transform-origin: center 24px;
+    transition: transform 0.15s ease;
+}
+
+.mp3-knob-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(145deg, 
+        rgba(248, 243, 238, 0.95) 0%,
+        var(--warm-cream) 50%,
+        rgba(184, 179, 173, 0.3) 100%);
+    box-shadow: 
+        inset 2px 2px 4px rgba(255, 255, 255, 0.5),
+        inset -2px -2px 4px rgba(184, 179, 173, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.knob-texture-lines {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: center;
+}
+
+.texture-line {
+    width: 16px;
+    height: 1px;
+    background: linear-gradient(90deg, 
+        transparent 0%,
+        rgba(184, 179, 173, 0.4) 50%,
+        transparent 100%);
+}
+
+.volume-display {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+    font-family: var(--font-mono);
+    color: var(--warm-gray);
+}
+
+.volume-value {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.volume-unit {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+.device-btn {
+    background: linear-gradient(145deg, 
+        rgba(255, 255, 255, 0.95) 0%,
+        var(--light-cream) 50%,
+        rgba(184, 179, 173, 0.3) 100%);
+    border: none;
+    border-radius: 12px;
+    padding: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 
+        3px 3px 8px rgba(184, 179, 173, 0.4),
+        -2px -2px 6px rgba(255, 255, 255, 0.6),
+        inset 0 1px 2px rgba(255, 255, 255, 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.device-btn:hover {
+    background: linear-gradient(145deg, 
+        rgba(255, 255, 255, 0.98) 0%,
+        var(--cream) 50%,
+        rgba(184, 179, 173, 0.35) 100%);
+    transform: translateY(-1px);
+}
+
+.device-btn:active {
+    box-shadow: 
+        inset 2px 2px 4px rgba(184, 179, 173, 0.5),
+        inset -1px -1px 3px rgba(255, 255, 255, 0.3);
+    transform: translateY(1px);
+}
+
+.btn-label {
+    font-size: 8px;
+    font-weight: 600;
+    color: var(--warm-gray);
+    letter-spacing: 0.5px;
+}
+
+.soundboard-grid-section {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+}
+
+.soundboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 1rem;
+    height: 100%;
+}
+
+.loading-state {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--warm-gray);
+    text-align: center;
+    padding: 2rem;
+}
+
+.loading-icon {
+    font-size: 48px;
+    margin-bottom: 1rem;
+    opacity: 0.6;
+}
+
+.loading-text {
+    font-size: 14px;
+    margin-bottom: 0.5rem;
+}
+
+.loading-subtext {
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+.sound-button {
+    aspect-ratio: 1;
+    border: none;
+    border-radius: 16px;
+    background: linear-gradient(145deg, 
+        rgba(255, 255, 255, 0.95) 0%,
+        var(--light-cream) 30%,
+        var(--cream) 70%,
+        rgba(184, 179, 173, 0.3) 100%);
+    cursor: pointer;
+    transition: all 0.15s ease-out;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--charcoal);
+    text-align: center;
+    padding: 0.75rem;
+    box-shadow: 
+        4px 4px 12px rgba(45, 42, 37, 0.2),
+        -2px -2px 8px rgba(255, 255, 255, 0.6),
+        inset 0 2px 4px rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.sound-button:hover {
+    background: linear-gradient(145deg, 
+        rgba(255, 255, 255, 0.98) 0%,
+        var(--cream) 30%,
+        var(--warm-cream) 70%,
+        rgba(184, 179, 173, 0.35) 100%);
+    box-shadow: 
+        5px 5px 15px rgba(45, 42, 37, 0.25),
+        -3px -3px 10px rgba(255, 255, 255, 0.7),
+        inset 0 3px 6px rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+}
+
+.sound-button:active {
+    background: linear-gradient(145deg, 
+        rgba(184, 179, 173, 0.2) 0%,
+        var(--cream) 30%,
+        var(--warm-cream) 70%,
+        rgba(255, 255, 255, 0.9) 100%);
+    transform: translateY(2px);
+    box-shadow: 
+        inset 3px 3px 8px rgba(45, 42, 37, 0.3),
+        inset -2px -2px 6px rgba(255, 255, 255, 0.4);
+}
+
+.sound-button .icon {
+    font-size: 24px;
+    margin-bottom: 0.5rem;
+    line-height: 1;
 }
 
 /* Soundboard Window Positioning */

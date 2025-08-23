@@ -4,8 +4,10 @@ class RetroSounds {
     constructor() {
         this.audioContext = null;
         this.sounds = new Map();
+        this.audioFiles = new Map(); // For external audio files
         this.initAudioContext();
         this.generateSystemSounds();
+        this.loadSystemAudioFiles();
     }
     
     initAudioContext() {
@@ -230,7 +232,28 @@ class RetroSounds {
         };
     }
     
+    loadSystemAudioFiles() {
+        // Load hover click sound
+        const hoverAudio = new Audio('system-sounds/click.mp3');
+        hoverAudio.volume = 0.3;
+        hoverAudio.preload = 'auto';
+        this.audioFiles.set('hover', hoverAudio);
+        
+        console.log('Loaded system audio files');
+    }
+    
     play(soundName) {
+        // First check if it's an external audio file
+        if (this.audioFiles.has(soundName)) {
+            const audio = this.audioFiles.get(soundName);
+            audio.currentTime = 0; // Reset to beginning
+            audio.play().catch(error => {
+                console.warn(`Error playing audio file '${soundName}':`, error);
+            });
+            return;
+        }
+        
+        // Then check if it's a generated sound
         if (!this.audioContext || !this.sounds.has(soundName)) return;
         
         // Resume audio context if it's suspended (required by some browsers)

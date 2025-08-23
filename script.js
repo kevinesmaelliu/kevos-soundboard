@@ -374,6 +374,10 @@ class SoftOS {
         
         // Desktop icon launching
         document.querySelectorAll('.desktop-icon').forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
+            
             item.addEventListener('click', (e) => {
                 this.sounds.play('click');
                 this.launchApp(item.dataset.app);
@@ -389,6 +393,10 @@ class SoftOS {
         
         // Dropdown menu interactions
         document.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
+            
             item.addEventListener('click', () => {
                 this.sounds.play('menuSelect');
                 this.handleDropdownAction(item.dataset.action);
@@ -406,6 +414,13 @@ class SoftOS {
     setupDockInteractions() {
         const dock = document.querySelector('.dock');
         const dockItems = document.querySelectorAll('.dock-item');
+        
+        // Add hover sound effects to dock items
+        dockItems.forEach(item => {
+            item.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
+        });
         
         // Magnetic dock effect
         dock.addEventListener('mousemove', (e) => {
@@ -452,33 +467,42 @@ class SoftOS {
     
     setupWindowDragging() {
         let isDragging = false;
+        let dragStarted = false;
         let dragOffset = { x: 0, y: 0 };
         let draggedWindow = null;
+        let initialRect = null;
+        let startMousePos = { x: 0, y: 0 };
+        const DRAG_THRESHOLD = 5; // pixels to move before starting drag
         
         document.addEventListener('mousedown', (e) => {
-            if (e.target.closest('.window-header') && !e.target.classList.contains('control-btn')) {
-                isDragging = true;
+            // More specific event target detection
+            const windowHeader = e.target.closest('.window-header');
+            const dragHandle = e.target.closest('.drag-handle');
+            
+            // Check if we clicked directly on a button to avoid drag conflicts
+            const isButton = e.target.matches('button, .control-btn, .mp3-control-btn, .soundboard-control-btn') ||
+                           e.target.closest('button, .control-btn, .mp3-control-btn, .soundboard-control-btn');
+            
+            if (!isButton && ((windowHeader && !e.target.classList.contains('control-btn')) || 
+                (dragHandle && !e.target.classList.contains('mp3-control-btn')))) {
+                
                 draggedWindow = e.target.closest('.window');
                 this.bringToFront(draggedWindow);
                 
-                // Get the current position of the window on screen
-                const rect = draggedWindow.getBoundingClientRect();
+                // Store initial mouse position for threshold check
+                startMousePos.x = e.clientX;
+                startMousePos.y = e.clientY;
+                
+                // Store initial position but don't modify CSS yet
+                initialRect = draggedWindow.getBoundingClientRect();
                 
                 // Calculate offset from mouse to top-left of window
-                dragOffset.x = e.clientX - rect.left;
-                dragOffset.y = e.clientY - rect.top;
+                dragOffset.x = e.clientX - initialRect.left;
+                dragOffset.y = e.clientY - initialRect.top;
                 
-                // Remove any transform and animation that might interfere
-                draggedWindow.style.transform = 'none';
-                draggedWindow.style.animation = 'none';
-                
-                // Set the exact current position as the starting point
-                draggedWindow.style.left = `${rect.left}px`;
-                draggedWindow.style.top = `${rect.top}px`;
-                draggedWindow.style.position = 'absolute';
-                
-                draggedWindow.style.cursor = 'grabbing';
-                document.body.style.userSelect = 'none';
+                // Prepare for dragging but don't start until mouse moves enough
+                isDragging = true;
+                dragStarted = false;
                 
                 e.preventDefault();
             }
@@ -486,6 +510,34 @@ class SoftOS {
         
         document.addEventListener('mousemove', (e) => {
             if (isDragging && draggedWindow) {
+                // Check if we've moved far enough to start dragging
+                if (!dragStarted) {
+                    const moveDistance = Math.sqrt(
+                        Math.pow(e.clientX - startMousePos.x, 2) + 
+                        Math.pow(e.clientY - startMousePos.y, 2)
+                    );
+                    
+                    // Only start dragging if we've moved beyond the threshold
+                    if (moveDistance >= DRAG_THRESHOLD) {
+                        dragStarted = true;
+                        
+                        // Now it's safe to modify CSS since we're actually dragging
+                        draggedWindow.style.transform = 'none';
+                        draggedWindow.style.animation = 'none';
+                        draggedWindow.style.position = 'absolute';
+                        
+                        // Set the exact current position as the starting point
+                        draggedWindow.style.left = `${initialRect.left}px`;
+                        draggedWindow.style.top = `${initialRect.top}px`;
+                        
+                        draggedWindow.style.cursor = 'grabbing';
+                        document.body.style.userSelect = 'none';
+                    } else {
+                        // Haven't moved far enough, don't drag yet
+                        return;
+                    }
+                }
+                
                 // Calculate new position based on mouse position minus the offset
                 const x = e.clientX - dragOffset.x;
                 const y = e.clientY - dragOffset.y;
@@ -501,11 +553,13 @@ class SoftOS {
         document.addEventListener('mouseup', () => {
             if (isDragging) {
                 isDragging = false;
+                dragStarted = false;
                 if (draggedWindow) {
                     draggedWindow.style.cursor = 'default';
                     draggedWindow = null;
                 }
                 document.body.style.userSelect = '';
+                initialRect = null;
             }
         });
     }
@@ -559,9 +613,17 @@ class SoftOS {
             soundboard: {
                 title: 'Soundboard',
                 content: this.createSoundboardContent(),
-                width: '400px',
-                height: '500px',
-                position: 'top-right'
+                width: '440px',
+                height: '580px',
+                position: 'top-right',
+                customWindow: true
+            },
+            mp3player: {
+                title: 'MP3 Player',
+                content: this.createMP3PlayerContent(),
+                width: '360px',
+                height: '560px',
+                customWindow: true
             }
         };
         
@@ -608,19 +670,26 @@ class SoftOS {
         window.style.top = `${posY}px`;
         window.style.transform = 'none';
         
-        window.innerHTML = `
-            <div class="window-header">
-                <div class="window-controls">
-                    <button class="control-btn close"></button>
-                    <button class="control-btn minimize"></button>
-                    <button class="control-btn maximize"></button>
+        if (config.customWindow) {
+            // Custom window without standard chrome
+            window.innerHTML = config.content;
+            window.classList.add('custom-window');
+        } else {
+            // Standard window with chrome
+            window.innerHTML = `
+                <div class="window-header">
+                    <div class="window-controls">
+                        <button class="control-btn close"></button>
+                        <button class="control-btn minimize"></button>
+                        <button class="control-btn maximize"></button>
+                    </div>
+                    <div class="window-title">${config.title}</div>
                 </div>
-                <div class="window-title">${config.title}</div>
-            </div>
-            <div class="window-content">
-                ${config.content}
-            </div>
-        `;
+                <div class="window-content">
+                    ${config.content}
+                </div>
+            `;
+        }
         
         document.querySelector('.windows-container').appendChild(window);
         this.windows.set(windowId, window);
@@ -887,175 +956,588 @@ class SoftOS {
     
     createSoundboardContent() {
         return `
-            <div style="height: 100%; display: flex; flex-direction: column;">
-                <div style="padding: 1rem; border-bottom: 1px solid rgba(184, 179, 173, 0.3);">
-                    <div style="margin-bottom: 1rem;">
-                        <h3 style="margin: 0; font-weight: 300; color: var(--charcoal);">Sound Effects</h3>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 1rem;">
-                        <label style="font-size: 13px; color: var(--warm-gray);">Volume:</label>
-                        <div class="volume-knob-container">
-                            <div class="volume-knob" id="volume-knob">
-                                <div class="knob-indicator"></div>
-                                <div class="knob-center"></div>
-                            </div>
-                        </div>
-                        <span id="volume-display" style="font-size: 12px; color: var(--warm-gray); min-width: 30px;">50%</span>
+            <div class="soundboard-device-standalone">
+                <!-- Integrated window controls with drag handle -->
+                <div class="soundboard-window-controls drag-handle">
+                    <button class="soundboard-control-btn soundboard-close" title="Close"></button>
+                    <button class="soundboard-control-btn soundboard-minimize" title="Minimize"></button>
+                    <button class="soundboard-control-btn soundboard-maximize" title="Maximize"></button>
+                    <div class="soundboard-brand">kevSOUND</div>
+                    <div class="drag-grip">⋮⋮</div>
+                </div>
+                
+                <!-- Control Panel Header -->
+                <div class="soundboard-controls-header">
+                    <div class="soundboard-title">SOUND EFFECTS</div>
+                    <div class="soundboard-status-lights">
+                        <div class="status-light power-light active"></div>
+                        <div class="status-light ready-light active"></div>
+                        <div class="status-text">READY</div>
                     </div>
                 </div>
-                <div style="flex: 1; overflow-y: auto; padding: 1rem;">
+                
+                <!-- Volume Control Section -->
+                <div class="soundboard-volume-section">
+                    <div class="volume-panel">
+                        <div class="volume-label">MASTER VOLUME</div>
+                        <div class="mp3-volume-knob-large" id="volume-knob">
+                            <!-- Outer ring with markings -->
+                            <div class="knob-outer-ring">
+                                <div class="knob-marking" style="transform: rotate(-135deg)"></div>
+                                <div class="knob-marking" style="transform: rotate(-90deg)"></div>
+                                <div class="knob-marking" style="transform: rotate(-45deg)"></div>
+                                <div class="knob-marking" style="transform: rotate(0deg)"></div>
+                                <div class="knob-marking" style="transform: rotate(45deg)"></div>
+                                <div class="knob-marking" style="transform: rotate(90deg)"></div>
+                                <div class="knob-marking" style="transform: rotate(135deg)"></div>
+                            </div>
+                            <!-- Main knob body -->
+                            <div class="mp3-knob-body">
+                                <div class="mp3-knob-indicator"></div>
+                                <div class="mp3-knob-center">
+                                    <div class="knob-texture-lines">
+                                        <div class="texture-line"></div>
+                                        <div class="texture-line"></div>
+                                        <div class="texture-line"></div>
+                                        <div class="texture-line"></div>
+                                        <div class="texture-line"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="volume-display">
+                            <span class="volume-value" id="volume-display">50</span>
+                            <span class="volume-unit">%</span>
+                        </div>
+                    </div>
+                    <div class="refresh-section">
+                        <button class="device-btn refresh-btn" onclick="window.softOS.refreshSoundboard()">
+                            <div class="btn-icon">🔄</div>
+                            <div class="btn-label">REFRESH</div>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Sound Grid Area -->
+                <div class="soundboard-grid-section">
                     <div class="soundboard-grid" id="soundboard-grid">
-                        <div style="text-align: center; color: var(--warm-gray); padding: 2rem;">
-                            <div style="font-size: 48px; margin-bottom: 1rem;">🎵</div>
-                            <p>Add audio files to the <strong>sounds/</strong> folder</p>
-                            <p style="font-size: 12px; margin-top: 0.5rem;">Supported: .mp3, .wav, .ogg, .m4a</p>
+                        <div class="loading-state">
+                            <div class="loading-icon">🎵</div>
+                            <div class="loading-text">Add audio files to the <strong>sounds/</strong> folder</div>
+                            <div class="loading-subtext">Supported: .mp3, .wav, .ogg, .m4a</div>
                         </div>
                     </div>
                 </div>
             </div>
+            <!-- New device-style soundboard CSS will be in the global styles -->
             <style>
-                .soundboard-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-                    gap: 0.75rem;
-                }
-                .sound-button {
-                    aspect-ratio: 1;
-                    border: 2px solid;
-                    border-color: rgba(255, 255, 255, 0.8) rgba(184, 179, 173, 0.6) rgba(184, 179, 173, 0.8) rgba(255, 255, 255, 0.6);
-                    border-radius: var(--radius-md);
-                    background: linear-gradient(145deg, 
-                        rgba(255, 220, 180, 0.9) 0%,
-                        var(--cream) 25%,
-                        var(--warm-cream) 75%,
-                        rgba(184, 179, 173, 0.3) 100%);
-                    cursor: pointer;
-                    transition: all 0.15s ease-out;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 11px;
-                    font-weight: 500;
-                    color: var(--charcoal);
-                    text-align: center;
-                    padding: 0.5rem;
-                    box-shadow: 
-                        0 2px 6px rgba(45, 42, 37, 0.15),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.3),
-                        inset 0 -1px 0 rgba(184, 179, 173, 0.2);
-                }
-                .sound-button:hover {
-                    background: linear-gradient(145deg, 
-                        rgba(250, 245, 240, 0.95) 0%,
-                        var(--light-cream) 25%,
-                        var(--cream) 75%,
-                        rgba(184, 179, 173, 0.3) 100%);
-                    box-shadow: 
-                        0 3px 8px rgba(45, 42, 37, 0.2),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.4),
-                        inset 0 -1px 0 rgba(184, 179, 173, 0.3);
-                }
-                .sound-button:active {
-                    background: linear-gradient(145deg, 
-                        rgba(184, 179, 173, 0.2) 0%,
-                        var(--cream) 25%,
-                        var(--warm-cream) 75%,
-                        rgba(255, 255, 255, 0.8) 100%);
-                    transform: translateY(2px);
-                    box-shadow: 0 2px 4px rgba(45, 42, 37, 0.4) inset;
-                }
-                .sound-button .icon {
-                    font-size: 24px;
-                    margin-bottom: 0.25rem;
-                }
-                .volume-knob-container {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    flex: 1;
-                    max-width: 200px;
-                }
+                /* Placeholder for soundboard styles - main styles defined globally */
+            </style>
+        `;
+    }
+    
+    createMP3PlayerContent() {
+        return `
+            <div class="mp3-player-standalone">
+                <!-- Integrated window controls -->
+                <div class="mp3-window-controls drag-handle">
+                    <button class="mp3-control-btn mp3-close" title="Close"></button>
+                    <button class="mp3-control-btn mp3-minimize" title="Minimize"></button>
+                    <button class="mp3-control-btn mp3-maximize" title="Maximize"></button>
+                    <div class="mp3-brand">kevMP3</div>
+                    <div class="drag-grip">⋮⋮</div>
+                </div>
                 
-                .volume-knob {
-                    width: 50px;
-                    height: 50px;
-                    border-radius: 50%;
-                    position: relative;
-                    cursor: pointer;
-                    user-select: none;
+                <!-- LCD Screen -->
+                <div class="mp3-screen">
+                    <div class="screen-content">
+                        <div class="track-info">
+                            <div class="track-title" id="mp3-track-title">No Track Playing</div>
+                            <div class="track-artist" id="mp3-track-artist">--</div>
+                        </div>
+                        <div class="track-time">
+                            <span id="mp3-current-time">0:00</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="mp3-progress"></div>
+                            </div>
+                            <span id="mp3-total-time">0:00</span>
+                        </div>
+                        <div class="visualizer" id="mp3-visualizer">
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                            <div class="bar"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Control Panel -->
+                <div class="mp3-controls">
+                    <!-- Main control buttons -->
+                    <div class="control-row main-controls">
+                        <button class="mp3-btn" id="mp3-prev" title="Previous">
+                            <div class="btn-icon">⏮</div>
+                        </button>
+                        <button class="mp3-btn large" id="mp3-play" title="Play/Pause">
+                            <div class="btn-icon" id="mp3-play-icon">▶</div>
+                        </button>
+                        <button class="mp3-btn" id="mp3-next" title="Next">
+                            <div class="btn-icon">⏭</div>
+                        </button>
+                    </div>
                     
-                    /* Matte neomorphic styling */
+                    <!-- Volume knob section -->
+                    <div class="control-row volume-section">
+                        <div class="volume-panel">
+                            <div class="volume-label">VOLUME</div>
+                            <div class="mp3-volume-knob-large" id="mp3-volume-knob">
+                                <!-- Outer ring with markings -->
+                                <div class="knob-outer-ring">
+                                    <div class="knob-marking" style="transform: rotate(-135deg)"></div>
+                                    <div class="knob-marking" style="transform: rotate(-90deg)"></div>
+                                    <div class="knob-marking" style="transform: rotate(-45deg)"></div>
+                                    <div class="knob-marking" style="transform: rotate(0deg)"></div>
+                                    <div class="knob-marking" style="transform: rotate(45deg)"></div>
+                                    <div class="knob-marking" style="transform: rotate(90deg)"></div>
+                                    <div class="knob-marking" style="transform: rotate(135deg)"></div>
+                                </div>
+                                <!-- Main knob body -->
+                                <div class="mp3-knob-body">
+                                    <div class="mp3-knob-indicator"></div>
+                                    <div class="mp3-knob-center">
+                                        <div class="knob-texture-lines">
+                                            <div class="texture-line"></div>
+                                            <div class="texture-line"></div>
+                                            <div class="texture-line"></div>
+                                            <div class="texture-line"></div>
+                                            <div class="texture-line"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="volume-display">
+                                <span class="volume-value" id="mp3-volume-value">75</span>
+                                <span class="volume-unit">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Hidden YouTube iframe -->
+                <div id="mp3-youtube-player" style="display: none;"></div>
+            </div>
+            
+            <style>
+                .mp3-player-standalone {
+                    width: 100%;
+                    height: 100%;
                     background: linear-gradient(145deg, 
-                        rgba(250, 245, 240, 0.9) 0%,
+                        rgba(250, 245, 240, 0.98) 0%,
                         var(--cream) 25%,
                         var(--warm-cream) 75%,
                         rgba(184, 179, 173, 0.4) 100%);
-                    
-                    /* Subtle outer shadow for depth */
+                    border-radius: 28px;
+                    padding: 0;
                     box-shadow: 
-                        3px 3px 8px rgba(184, 179, 173, 0.3),
-                        -2px -2px 6px rgba(255, 255, 255, 0.4),
-                        inset 0 1px 1px rgba(255, 255, 255, 0.3),
-                        inset 0 -1px 1px rgba(184, 179, 173, 0.2);
-                    
-                    border: 1px solid rgba(184, 179, 173, 0.3);
+                        0 12px 32px rgba(45, 42, 37, 0.3),
+                        inset 0 2px 6px rgba(255, 255, 255, 0.4),
+                        inset 0 -2px 6px rgba(184, 179, 173, 0.2);
+                    border: 2px solid rgba(255, 255, 255, 0.6);
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                }
+                
+                /* Integrated window controls */
+                .mp3-window-controls {
+                    display: flex;
+                    align-items: center;
+                    padding: 12px 16px;
+                    gap: 8px;
+                    background: linear-gradient(135deg, 
+                        rgba(255, 255, 255, 0.3) 0%,
+                        rgba(184, 179, 173, 0.1) 100%);
+                    border-bottom: 1px solid rgba(184, 179, 173, 0.2);
+                }
+                
+                .mp3-control-btn {
+                    width: 14px;
+                    height: 14px;
+                    border-radius: 50%;
+                    border: none;
+                    cursor: pointer;
+                    transition: all 0.15s ease;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+                }
+                
+                .mp3-close {
+                    background: linear-gradient(145deg, #ff6b6b, #ff5252);
+                }
+                
+                .mp3-minimize {
+                    background: linear-gradient(145deg, #ffd93d, #ffca28);
+                }
+                
+                .mp3-maximize {
+                    background: linear-gradient(145deg, #6bcf7f, #4caf50);
+                }
+                
+                .mp3-control-btn:hover {
+                    transform: scale(1.1);
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+                }
+                
+                .mp3-brand {
+                    margin-left: auto;
+                    font-size: 11px;
+                    font-weight: 600;
+                    color: var(--warm-gray);
+                    letter-spacing: 1px;
+                    opacity: 0.7;
+                }
+                
+                .drag-grip {
+                    font-size: 14px;
+                    color: var(--warm-gray);
+                    opacity: 0.5;
+                    cursor: move;
+                    user-select: none;
+                    padding: 0 4px;
+                    line-height: 1;
+                }
+                
+                .drag-handle {
+                    cursor: move;
+                }
+                
+                .drag-handle:active {
+                    cursor: grabbing;
+                }
+                
+                /* LCD Screen */
+                .mp3-screen {
+                    background: linear-gradient(135deg, #2a3f2a 0%, #1a2f1a 100%);
+                    border-radius: 16px;
+                    padding: 1.5rem;
+                    margin: 1.5rem;
+                    margin-bottom: 1rem;
+                    box-shadow: 
+                        inset 0 3px 10px rgba(0, 0, 0, 0.7),
+                        0 1px 3px rgba(255, 255, 255, 0.3);
+                    border: 3px solid rgba(0, 0, 0, 0.4);
+                    position: relative;
+                }
+                
+                .mp3-screen::before {
+                    content: '';
+                    position: absolute;
+                    top: 6px;
+                    left: 6px;
+                    right: 6px;
+                    height: 40%;
+                    background: linear-gradient(180deg, 
+                        rgba(255, 255, 255, 0.05) 0%,
+                        transparent 100%);
+                    border-radius: 12px;
+                    pointer-events: none;
+                }
+                
+                .screen-content {
+                    color: #7fb069;
+                    font-family: var(--font-mono);
+                    text-shadow: 0 0 4px rgba(127, 176, 105, 0.6);
+                }
+                
+                .track-info {
+                    margin-bottom: 1rem;
+                    min-height: 48px;
+                }
+                
+                .track-title {
+                    font-size: 14px;
+                    font-weight: bold;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    margin-bottom: 0.4rem;
+                }
+                
+                .track-artist {
+                    font-size: 11px;
+                    opacity: 0.8;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                
+                .track-time {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    font-size: 11px;
+                    margin-bottom: 1rem;
+                }
+                
+                .progress-bar {
+                    flex: 1;
+                    height: 6px;
+                    background: rgba(0, 0, 0, 0.4);
+                    border-radius: 3px;
+                    overflow: hidden;
+                    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+                }
+                
+                .progress-fill {
+                    height: 100%;
+                    width: 0%;
+                    background: linear-gradient(90deg, #7fb069, #9fc776);
+                    box-shadow: 0 0 6px rgba(127, 176, 105, 0.8);
+                    transition: width 0.3s ease;
+                }
+                
+                .visualizer {
+                    display: flex;
+                    align-items: flex-end;
+                    justify-content: center;
+                    gap: 4px;
+                    height: 24px;
+                }
+                
+                .visualizer .bar {
+                    width: 4px;
+                    background: linear-gradient(180deg, #7fb069, #6ca55a);
+                    box-shadow: 0 0 3px rgba(127, 176, 105, 0.7);
+                    border-radius: 2px;
+                    animation: none;
+                    transition: height 0.15s ease;
+                }
+                
+                .visualizer.playing .bar {
+                    animation: pulse 0.8s ease-in-out infinite;
+                }
+                
+                .visualizer.playing .bar:nth-child(2) { animation-delay: 0.1s; }
+                .visualizer.playing .bar:nth-child(3) { animation-delay: 0.2s; }
+                .visualizer.playing .bar:nth-child(4) { animation-delay: 0.3s; }
+                .visualizer.playing .bar:nth-child(5) { animation-delay: 0.4s; }
+                
+                @keyframes pulse {
+                    0%, 100% { height: 5px; }
+                    50% { height: 20px; }
+                }
+                
+                /* Controls */
+                .mp3-controls {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1.5rem;
+                    padding: 0 2rem 2rem;
+                    flex: 1;
+                }
+                
+                .control-row {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                
+                .main-controls {
+                    gap: 1.5rem;
+                }
+                
+                .mp3-btn {
+                    width: 50px;
+                    height: 50px;
+                    border-radius: 50%;
+                    border: none;
+                    background: linear-gradient(145deg, 
+                        rgba(255, 255, 255, 0.95) 0%,
+                        var(--light-cream) 50%,
+                        rgba(184, 179, 173, 0.3) 100%);
+                    box-shadow: 
+                        4px 4px 10px rgba(184, 179, 173, 0.5),
+                        -2px -2px 8px rgba(255, 255, 255, 0.7),
+                        inset 0 1px 3px rgba(255, 255, 255, 0.5);
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.15s ease;
+                    color: var(--charcoal);
+                }
+                
+                .mp3-btn.large {
+                    width: 64px;
+                    height: 64px;
+                }
+                
+                .mp3-btn:hover {
+                    background: linear-gradient(145deg, 
+                        rgba(255, 255, 255, 0.98) 0%,
+                        var(--cream) 50%,
+                        rgba(184, 179, 173, 0.35) 100%);
+                    transform: translateY(-1px);
+                }
+                
+                .mp3-btn:active {
+                    box-shadow: 
+                        inset 3px 3px 6px rgba(184, 179, 173, 0.5),
+                        inset -2px -2px 4px rgba(255, 255, 255, 0.4);
+                    transform: translateY(1px);
+                }
+                
+                .btn-icon {
+                    font-size: 18px;
+                    font-weight: bold;
+                }
+                
+                .mp3-btn.large .btn-icon {
+                    font-size: 24px;
+                }
+                
+                /* Large Volume Knob */
+                .volume-section {
+                    flex-direction: column;
+                    gap: 1rem;
+                }
+                
+                .volume-panel {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 1rem;
+                }
+                
+                .volume-label {
+                    font-size: 11px;
+                    font-weight: 700;
+                    color: var(--warm-gray);
+                    letter-spacing: 1.5px;
+                    opacity: 0.8;
+                }
+                
+                .mp3-volume-knob-large {
+                    width: 80px;
+                    height: 80px;
+                    position: relative;
+                    cursor: pointer;
+                    user-select: none;
+                }
+                
+                .knob-outer-ring {
+                    position: absolute;
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 50%;
+                }
+                
+                .knob-marking {
+                    position: absolute;
+                    top: 4px;
+                    left: 50%;
+                    width: 2px;
+                    height: 8px;
+                    background: rgba(184, 179, 173, 0.6);
+                    border-radius: 1px;
+                    transform-origin: center 36px;
+                    margin-left: -1px;
+                }
+                
+                .mp3-knob-body {
+                    position: absolute;
+                    top: 8px;
+                    left: 8px;
+                    width: 64px;
+                    height: 64px;
+                    border-radius: 50%;
+                    background: linear-gradient(145deg, 
+                        rgba(250, 245, 240, 0.95) 0%,
+                        var(--cream) 30%,
+                        var(--warm-cream) 70%,
+                        rgba(184, 179, 173, 0.4) 100%);
+                    box-shadow: 
+                        4px 4px 12px rgba(184, 179, 173, 0.4),
+                        -2px -2px 8px rgba(255, 255, 255, 0.6),
+                        inset 0 2px 4px rgba(255, 255, 255, 0.4);
                     transition: all 0.1s ease;
                 }
                 
-                .volume-knob:hover {
-                    /* Subtle pressed look on hover */
+                .mp3-knob-body:hover {
                     box-shadow: 
-                        2px 2px 6px rgba(184, 179, 173, 0.4),
-                        -2px -2px 6px rgba(255, 255, 255, 0.5),
-                        inset 0 1px 2px rgba(255, 255, 255, 0.4),
-                        inset 0 -1px 2px rgba(184, 179, 173, 0.3);
+                        4px 4px 14px rgba(184, 179, 173, 0.5),
+                        -2px -2px 10px rgba(255, 255, 255, 0.7),
+                        inset 0 2px 5px rgba(255, 255, 255, 0.5);
                 }
                 
-                .volume-knob:active {
-                    /* Pressed state */
-                    box-shadow: 
-                        inset 2px 2px 4px rgba(184, 179, 173, 0.3),
-                        inset -1px -1px 3px rgba(255, 255, 255, 0.4),
-                        1px 1px 3px rgba(184, 179, 173, 0.2);
-                }
-                
-                .knob-center {
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    width: 20px;
-                    height: 20px;
-                    border-radius: 50%;
-                    
-                    /* Matte inner knob styling */
-                    background: linear-gradient(145deg,
-                        rgba(248, 243, 238, 0.9) 0%,
-                        var(--warm-cream) 50%,
-                        rgba(184, 179, 173, 0.3) 100%);
-                    
-                    box-shadow: 
-                        inset 1px 1px 2px rgba(255, 255, 255, 0.4),
-                        inset -1px -1px 2px rgba(184, 179, 173, 0.2),
-                        0 1px 2px rgba(0, 0, 0, 0.05);
-                }
-                
-                .knob-indicator {
+                .mp3-knob-indicator {
                     position: absolute;
                     top: 8px;
                     left: 50%;
                     transform: translateX(-50%);
                     width: 3px;
                     height: 12px;
-                    background: linear-gradient(180deg,
-                        var(--primary-orange) 0%,
-                        var(--soft-orange) 100%);
+                    background: linear-gradient(180deg, var(--primary-orange), var(--soft-orange));
                     border-radius: 1.5px;
-                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-                    transform-origin: center 17px;
-                    transition: transform 0.1s ease;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                    transform-origin: center 24px;
+                    transition: transform 0.15s ease;
                 }
+                
+                .mp3-knob-center {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 50%;
+                    background: linear-gradient(145deg, 
+                        rgba(248, 243, 238, 0.95) 0%,
+                        var(--warm-cream) 50%,
+                        rgba(184, 179, 173, 0.3) 100%);
+                    box-shadow: 
+                        inset 2px 2px 4px rgba(255, 255, 255, 0.5),
+                        inset -2px -2px 4px rgba(184, 179, 173, 0.3);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+                
+                .knob-texture-lines {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2px;
+                    align-items: center;
+                }
+                
+                .texture-line {
+                    width: 16px;
+                    height: 1px;
+                    background: linear-gradient(90deg, 
+                        transparent 0%,
+                        rgba(184, 179, 173, 0.4) 50%,
+                        transparent 100%);
+                }
+                
+                .volume-display {
+                    display: flex;
+                    align-items: baseline;
+                    gap: 2px;
+                    font-family: var(--font-mono);
+                    color: var(--warm-gray);
+                }
+                
+                .volume-value {
+                    font-size: 16px;
+                    font-weight: 600;
+                }
+                
+                .volume-unit {
+                    font-size: 11px;
+                    opacity: 0.7;
+                }
+                
             </style>
         `;
     }
@@ -1355,6 +1837,9 @@ class SoftOS {
             case 'Soundboard':
                 this.setupSoundboard(windowElement);
                 break;
+            case 'MP3 Player':
+                this.setupMP3Player(windowElement);
+                break;
         }
     }
     
@@ -1508,91 +1993,47 @@ class SoftOS {
         this.soundboardAudio = new Map();
         this.soundboardVolume = 0.5;
         
-        // Set up volume knob control
+        // Set up volume knob control using the reusable component
         const volumeKnob = windowElement.querySelector('#volume-knob');
-        const volumeDisplay = windowElement.querySelector('#volume-display');
         
-        if (volumeKnob && volumeDisplay) {
-            let isDragging = false;
-            let currentStep = 10; // Start at 50% (step 10 of 20)
-            const totalSteps = 20; // 20 steps from 0-100%
-            const stepSize = 100 / totalSteps; // 5% per step
-            
-            // Set initial knob position
-            const indicator = volumeKnob.querySelector('.knob-indicator');
-            
-            const updateVolume = (step, playClick = false) => {
-                const newStep = Math.max(0, Math.min(totalSteps, step));
-                if (newStep !== currentStep && playClick) {
-                    // Play simple knob click sound
-                    this.sounds.play('knobClick');
-                }
-                
-                currentStep = newStep;
-                const volume = (currentStep / totalSteps) * 100;
-                this.soundboardVolume = volume / 100;
-                volumeDisplay.textContent = Math.round(volume) + '%';
-                
-                // Update knob visual with stepped rotation
-                const rotation = (currentStep / totalSteps) * 270 - 135; // Map steps to -135° to +135°
-                indicator.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
-            };
-            
-            const getStepFromAngle = (centerX, centerY, mouseX, mouseY) => {
-                const angle = Math.atan2(mouseY - centerY, mouseX - centerX);
-                const degrees = (angle * 180 / Math.PI + 90 + 360) % 360; // Convert to 0-360°, with 0° at top
-                
-                // Map angle to step (0-270° range, starting from -135° to +135°)
-                let mappedAngle;
-                if (degrees <= 135) {
-                    mappedAngle = degrees + 135; // 0-135° becomes 135-270°
-                } else {
-                    mappedAngle = degrees - 225; // 136-360° becomes -89° to 135°, but we only want 225-360° to become 0-135°
-                    if (mappedAngle < 0) mappedAngle = 0;
-                }
-                
-                // Convert angle to discrete step
-                const rawStep = (mappedAngle / 270) * totalSteps;
-                return Math.round(rawStep); // Round to nearest step
-            };
-            
-            volumeKnob.addEventListener('mousedown', (e) => {
-                isDragging = true;
-                volumeKnob.style.cursor = 'grabbing';
-                document.body.style.userSelect = 'none';
-                e.preventDefault();
+        if (volumeKnob) {
+            this.soundboardVolumeKnob = new VolumeKnob(volumeKnob, {
+                initialValue: 50,
+                minValue: 0,
+                maxValue: 100,
+                steps: 20,
+                onValueChange: (value) => {
+                    this.soundboardVolume = value / 100;
+                    const volumeDisplay = windowElement.querySelector('#volume-display');
+                    if (volumeDisplay) {
+                        volumeDisplay.textContent = Math.round(value);
+                    }
+                },
+                soundManager: this.sounds
             });
-            
-            document.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                
-                const rect = volumeKnob.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-                
-                const newStep = getStepFromAngle(centerX, centerY, e.clientX, e.clientY);
-                updateVolume(newStep, true); // Play click sound when dragging
-                
-                e.preventDefault();
+        }
+        
+        // Wire up integrated window controls
+        const closeBtn = windowElement.querySelector('.soundboard-close');
+        const minimizeBtn = windowElement.querySelector('.soundboard-minimize');
+        const maximizeBtn = windowElement.querySelector('.soundboard-maximize');
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                this.closeWindow(windowElement.id);
             });
-            
-            document.addEventListener('mouseup', () => {
-                if (isDragging) {
-                    isDragging = false;
-                    volumeKnob.style.cursor = 'pointer';
-                    document.body.style.userSelect = '';
-                }
+        }
+        
+        if (minimizeBtn) {
+            minimizeBtn.addEventListener('click', () => {
+                this.minimizeWindow(windowElement);
             });
-            
-            // Add scroll wheel support for fine control
-            volumeKnob.addEventListener('wheel', (e) => {
-                e.preventDefault();
-                const direction = e.deltaY > 0 ? -1 : 1;
-                updateVolume(currentStep + direction, true);
+        }
+        
+        if (maximizeBtn) {
+            maximizeBtn.addEventListener('click', () => {
+                this.maximizeWindow(windowElement);
             });
-            
-            // Initialize volume
-            updateVolume(currentStep, false);
         }
         
         // Load audio files (simulated - would normally scan sounds folder)
@@ -1755,6 +2196,50 @@ class SoftOS {
                 this.loadSoundboardAudio(windowElement);
                 break;
             }
+        }
+    }
+    
+    setupMP3Player(windowElement) {
+        // Setup MP3 player controls
+        console.log('Setting up MP3 player in window');
+        if (window.mp3Player) {
+            window.mp3Player.setupControls();
+            // If YouTube API is already loaded, initialize the player
+            if (window.YT && window.YT.Player) {
+                window.mp3Player.init();
+            }
+        } else if (window.MP3Player) {
+            console.log('MP3 player not found, creating new instance');
+            window.mp3Player = new window.MP3Player();
+            window.mp3Player.setupControls();
+            if (window.YT && window.YT.Player) {
+                window.mp3Player.init();
+            }
+        } else {
+            console.error('MP3Player class not loaded');
+        }
+        
+        // Wire up integrated window controls
+        const closeBtn = windowElement.querySelector('.mp3-close');
+        const minimizeBtn = windowElement.querySelector('.mp3-minimize');
+        const maximizeBtn = windowElement.querySelector('.mp3-maximize');
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                this.closeWindow(windowElement.id);
+            });
+        }
+        
+        if (minimizeBtn) {
+            minimizeBtn.addEventListener('click', () => {
+                this.minimizeWindow(windowElement);
+            });
+        }
+        
+        if (maximizeBtn) {
+            maximizeBtn.addEventListener('click', () => {
+                this.maximizeWindow(windowElement);
+            });
         }
     }
 }
