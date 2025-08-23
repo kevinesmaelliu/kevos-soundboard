@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kevOS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Neuton:ital,wght@0,200;0,300;0,400;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- kevOS Start Screen -->
+    <div class="kevos-start-screen" id="kevos-start">
+        <div class="start-content">
+            <div class="start-logo">
+                <div class="logo-ring-static"></div>
+                <div class="logo-center-large">kev</div>
+            </div>
+            <div class="start-text">
+                <div class="kevos-title-large">kevOS</div>
+                <div class="start-subtitle">A warm, tactile computing experience</div>
+                <div class="start-description">Click to begin your journey</div>
+            </div>
+            <button id="start-kevos" class="start-button">
+                <span class="start-button-text">Start kevOS</span>
+                <div class="start-button-glow"></div>
+            </button>
+        </div>
+    </div>
+
+    <!-- kevOS Launch Screen (hidden initially) -->
+    <div class="kevos-launch-screen" id="kevos-launch" style="display: none;">
+        <div class="launch-content">
+            <div class="launch-logo">
+                <div class="logo-ring"></div>
+                <div class="logo-center">kev</div>
+            </div>
+            <div class="launch-text">
+                <div class="kevos-title">kevOS</div>
+                <div class="launch-subtitle">A warm, tactile computing experience</div>
+            </div>
+            <div class="launch-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                </div>
+                <div class="launch-status">Initializing...</div>
+                <button id="skip-launch" style="margin-top: 1rem; padding: 0.5rem 1rem; background: rgba(255,107,53,0.2); border: 1px solid var(--primary-orange); color: var(--cream); border-radius: 6px; cursor: pointer; font-family: var(--font-system); font-size: 12px;">Skip Launch (Debug)</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="desktop" style="display: none;">
+        <div class="taskbar">
+            <div class="taskbar-left">
+                <div class="logo">
+                    <div class="logo-icon"></div>
+                    <span>kevOS</span>
+                </div>
+                <div class="app-menu">
+                    <button class="menu-item">Files</button>
+                    <button class="menu-item">Apps</button>
+                    <button class="menu-item">System</button>
+                </div>
+            </div>
+            <div class="taskbar-right">
+                <div class="system-info">
+                    <span class="time">2:34 PM</span>
+                    <div class="battery"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="desktop-content">
+            <div class="dock">
+                <div class="dock-item" data-app="finder">
+                    <div class="dock-icon finder-icon"></div>
+                </div>
+                <div class="dock-item" data-app="notes">
+                    <div class="dock-icon notes-icon"></div>
+                </div>
+                <div class="dock-item" data-app="calculator">
+                    <div class="dock-icon calc-icon"></div>
+                </div>
+                <div class="dock-item" data-app="settings">
+                    <div class="dock-icon settings-icon"></div>
+                </div>
+                <div class="dock-item" data-app="soundboard">
+                    <div class="dock-icon soundboard-icon"></div>
+                </div>
+            </div>
+
+            <div class="windows-container">
+                <div class="window" id="welcome-window">
+                    <div class="window-header">
+                        <div class="window-controls">
+                            <button class="control-btn close"></button>
+                            <button class="control-btn minimize"></button>
+                            <button class="control-btn maximize"></button>
+                        </div>
+                        <div class="window-title">Welcome</div>
+                    </div>
+                    <div class="window-content">
+                        <h2>Welcome to kevOS</h2>
+                        <p>A tactile, warm computing experience inspired by the golden age of personal computing.</p>
+                        <button class="soft-button primary" onclick="window.softOS.getStarted()">Get Started</button>
+                    </div>
+                </div>
+                
+                <div class="window soundboard-window" id="soundboard-window" style="display: none;">
+                    <div class="window-header">
+                        <div class="window-controls">
+                            <button class="control-btn close" onclick="window.softOS.closeWindow('soundboard-window')"></button>
+                            <button class="control-btn minimize"></button>
+                            <button class="control-btn maximize"></button>
+                        </div>
+                        <div class="window-title">Soundboard</div>
+                    </div>
+                    <div class="window-content soundboard-content">
+                        <div class="soundboard-grid" id="soundboard-grid">
+                            <!-- Sound buttons will be generated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="sounds.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

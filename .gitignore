@@ -1,0 +1,30 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Dependencies (if you add any later)
+node_modules/
+
+# Environment variables
+.env
+.env.local
+
+# Build outputs (if you add build tools later)
+dist/
+build/
+
+# Custom audio files (optional - uncomment if you want to exclude user sounds)
+# sounds/*.mp3
+# sounds/*.wav
+# sounds/*.ogg
+# sounds/*.m4a
