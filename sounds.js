@@ -38,6 +38,9 @@ class RetroSounds {
         
         // Dock bounce sound
         this.sounds.set('dockBounce', this.createDockBounce());
+        
+        // Simple knob click
+        this.sounds.set('knobClick', this.createKnobClick());
     }
     
     createStartupChime() {
@@ -196,6 +199,30 @@ class RetroSounds {
             oscillator.type = 'sine';
             
             gainNode.gain.setValueAtTime(0.04, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
+            
+            oscillator.start(now);
+            oscillator.stop(now + duration);
+        };
+    }
+    
+    createKnobClick() {
+        return () => {
+            const duration = 0.05;
+            const now = this.audioContext.currentTime;
+            
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            // Simple, short click sound
+            oscillator.frequency.setValueAtTime(1200, now);
+            oscillator.frequency.exponentialRampToValueAtTime(800, now + duration);
+            oscillator.type = 'square';
+            
+            gainNode.gain.setValueAtTime(0.03, now);
             gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration);
             
             oscillator.start(now);

@@ -643,11 +643,142 @@ body::before {
     border-radius: 0 1px 1px 0;
 }
 
+/* Dropdown Menus */
+.menu-item-container {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    min-width: 180px;
+    background: 
+        var(--noise-texture),
+        linear-gradient(145deg,
+            rgba(250, 245, 240, 0.95) 0%,
+            var(--warm-cream) 25%,
+            var(--cream) 75%,
+            rgba(245, 237, 228, 0.95) 100%
+        );
+    border: 1px solid rgba(184, 179, 173, 0.4);
+    border-radius: var(--radius-md);
+    box-shadow: 
+        0 4px 12px rgba(45, 42, 37, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    padding: 4px 0;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.2s ease;
+}
+
+.menu-item-container:hover .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    padding: 8px 16px;
+    font-size: 13px;
+    color: var(--charcoal);
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    user-select: none;
+}
+
+.dropdown-item:hover {
+    background: rgba(255, 107, 53, 0.1);
+    color: var(--primary-orange);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: rgba(184, 179, 173, 0.3);
+    margin: 4px 0;
+}
+
 /* Desktop Content */
 .desktop-content {
     flex: 1;
     position: relative;
     overflow: visible;  /* Changed from hidden to visible to ensure dock is not cut off */
+}
+
+/* Desktop Icons */
+.desktop-icons {
+    position: absolute;
+    top: var(--space-lg);
+    left: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    z-index: 10;
+}
+
+.desktop-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    padding: var(--space-xs);
+    border-radius: var(--radius-md);
+    transition: all 0.2s ease;
+    user-select: none;
+    min-width: 80px;
+}
+
+.desktop-icon:hover {
+    background: rgba(255, 107, 53, 0.1);
+    transform: translateY(-2px);
+}
+
+.desktop-icon:active {
+    transform: translateY(0);
+    background: rgba(255, 107, 53, 0.2);
+}
+
+.desktop-icon-image {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    margin-bottom: var(--space-xs);
+    box-shadow: 
+        0 4px 12px rgba(45, 42, 37, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        inset 0 -1px 0 rgba(184, 179, 173, 0.5),
+        inset 1px 0 0 rgba(255, 255, 255, 0.6),
+        inset -1px 0 0 rgba(184, 179, 173, 0.4);
+    border: 2px solid;
+    border-color: rgba(255, 255, 255, 0.8) rgba(184, 179, 173, 0.6) rgba(184, 179, 173, 0.8) rgba(255, 255, 255, 0.6);
+    transition: all 0.2s ease;
+}
+
+.desktop-icon:hover .desktop-icon-image {
+    box-shadow: 
+        0 6px 16px rgba(45, 42, 37, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(184, 179, 173, 0.6),
+        inset 1px 0 0 rgba(255, 255, 255, 0.7),
+        inset -1px 0 0 rgba(184, 179, 173, 0.5);
+    transform: scale(1.05);
+}
+
+.desktop-icon-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--charcoal);
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+    max-width: 72px;
+    line-height: 1.2;
+    padding: 2px 4px;
+    border-radius: 4px;
+    background: rgba(253, 246, 240, 0.9);
+    border: 1px solid rgba(184, 179, 173, 0.3);
 }
 
 /* Retro Physical Dock */
@@ -663,21 +794,16 @@ body::before {
     background: 
         var(--noise-texture),
         linear-gradient(145deg,
-            rgba(255, 255, 255, 0.9) 0%,
+            rgba(250, 248, 245, 0.9) 0%,
             var(--platinum-light) 25%,
             var(--platinum) 75%,
-            rgba(184, 179, 173, 0.7) 100%
+            rgba(184, 179, 173, 0.8) 100%
         );
-    border: 2px solid;
-    border-color: rgba(255, 255, 255, 0.8) rgba(184, 179, 173, 0.6) rgba(184, 179, 173, 0.8) rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(184, 179, 173, 0.5);
     border-radius: var(--radius-lg);
     box-shadow: 
-        0 8px 24px rgba(45, 42, 37, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9),
-        inset 0 -1px 0 rgba(184, 179, 173, 0.5),
-        inset 1px 0 0 rgba(255, 255, 255, 0.7),
-        inset -1px 0 0 rgba(184, 179, 173, 0.4);
-    z-index: 100;
+        0 4px 16px rgba(45, 42, 37, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
 
 .dock-item {
@@ -703,8 +829,8 @@ body::before {
     height: 100%;
     border-radius: var(--radius-md);
     box-shadow: 
-        0 4px 16px var(--light-shadow),
-        0 1px 0 rgba(255, 255, 255, 0.6) inset;
+        0 2px 8px var(--light-shadow),
+        0 1px 0 rgba(255, 255, 255, 0.2) inset;
     position: relative;
     transition: inherit;
     overflow: hidden;
@@ -716,8 +842,8 @@ body::before {
     top: 0;
     left: 0;
     right: 0;
-    height: 50%;
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), transparent);
+    height: 30%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
     border-radius: var(--radius-md) var(--radius-md) 0 0;
     pointer-events: none;
 }
@@ -933,20 +1059,17 @@ body::before {
     background: 
         var(--noise-texture),
         linear-gradient(145deg,
-            rgba(255, 255, 255, 0.95) 0%,
+            rgba(250, 245, 240, 0.95) 0%,
             var(--warm-cream) 25%,
             var(--cream) 75%,
-            rgba(245, 237, 228, 0.9) 100%
+            rgba(245, 237, 228, 0.95) 100%
         );
-    border: 2px solid;
-    border-color: rgba(255, 255, 255, 0.9) rgba(184, 179, 173, 0.6) rgba(184, 179, 173, 0.7) rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(184, 179, 173, 0.4);
     border-radius: var(--radius-md);
     box-shadow: 
-        0 16px 48px rgba(45, 42, 37, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9),
-        inset 0 -1px 0 rgba(184, 179, 173, 0.4),
-        inset 1px 0 0 rgba(255, 255, 255, 0.7),
-        inset -1px 0 0 rgba(184, 179, 173, 0.3);
+        0 8px 24px rgba(45, 42, 37, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1px 0 rgba(184, 179, 173, 0.2);
     animation: windowAppear 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 

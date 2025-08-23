@@ -58,9 +58,25 @@
                     <span>kevOS</span>
                 </div>
                 <div class="app-menu">
-                    <button class="menu-item">Files</button>
-                    <button class="menu-item">Apps</button>
-                    <button class="menu-item">System</button>
+                    <div class="menu-item-container">
+                        <button class="menu-item" data-menu="files">Files</button>
+                        <div class="dropdown-menu" id="files-dropdown">
+                            <div class="dropdown-item" data-action="open-finder">Open Finder</div>
+                            <div class="dropdown-item" data-action="recent-files">Recent Files</div>
+                            <div class="dropdown-divider"></div>
+                            <div class="dropdown-item" data-action="new-folder">New Folder</div>
+                        </div>
+                    </div>
+                    <div class="menu-item-container">
+                        <button class="menu-item" data-menu="system">System</button>
+                        <div class="dropdown-menu" id="system-dropdown">
+                            <div class="dropdown-item" data-action="open-settings">System Preferences</div>
+                            <div class="dropdown-item" data-action="about">About kevOS</div>
+                            <div class="dropdown-divider"></div>
+                            <div class="dropdown-item" data-action="restart">Restart</div>
+                            <div class="dropdown-item" data-action="shutdown">Shut Down</div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="taskbar-right">
@@ -72,6 +88,14 @@
         </div>
 
         <div class="desktop-content">
+            <!-- Desktop Icons -->
+            <div class="desktop-icons">
+                <div class="desktop-icon" data-app="soundboard">
+                    <div class="desktop-icon-image soundboard-icon"></div>
+                    <div class="desktop-icon-label">Soundboard</div>
+                </div>
+            </div>
+            
             <div class="dock">
                 <div class="dock-item" data-app="finder">
                     <div class="dock-icon finder-icon"></div>
@@ -84,9 +108,6 @@
                 </div>
                 <div class="dock-item" data-app="settings">
                     <div class="dock-icon settings-icon"></div>
-                </div>
-                <div class="dock-item" data-app="soundboard">
-                    <div class="dock-icon soundboard-icon"></div>
                 </div>
             </div>
 

@@ -1,11 +1,84 @@
 // Soft OS - Interactive Window Management & UI
 
+// Keyboard Sound Manager
+class KeyboardSoundManager {
+    constructor() {
+        this.keyboardSounds = [];
+        this.enabled = true;
+        this.volume = 0.3;
+        this.lastPlayTime = 0;
+        this.minInterval = 50; // Minimum ms between sounds to prevent overlap
+        
+        this.loadKeyboardSounds();
+    }
+    
+    async loadKeyboardSounds() {
+        // Preload all keyboard click sounds
+        const soundFiles = [
+            'sounds/keyboard clicks/sample1.mp3',
+            'sounds/keyboard clicks/sample2.mp3',
+            'sounds/keyboard clicks/sample3.mp3',
+            'sounds/keyboard clicks/sample4.mp3',
+            'sounds/keyboard clicks/sample5.mp3'
+        ];
+        
+        for (const file of soundFiles) {
+            try {
+                const audio = new Audio(file);
+                audio.volume = this.volume;
+                audio.preload = 'auto';
+                this.keyboardSounds.push(audio);
+                console.log(`Loaded keyboard sound: ${file}`);
+            } catch (error) {
+                console.error(`Failed to load keyboard sound ${file}:`, error);
+            }
+        }
+        
+        console.log(`Loaded ${this.keyboardSounds.length} keyboard sounds`);
+    }
+    
+    playRandomKeySound() {
+        if (!this.enabled || this.keyboardSounds.length === 0) return;
+        
+        // Throttle sounds to prevent overlap
+        const now = Date.now();
+        if (now - this.lastPlayTime < this.minInterval) return;
+        this.lastPlayTime = now;
+        
+        // Pick a random sound
+        const randomIndex = Math.floor(Math.random() * this.keyboardSounds.length);
+        const sound = this.keyboardSounds[randomIndex];
+        
+        // Clone the audio to allow overlapping plays
+        const audioClone = sound.cloneNode();
+        audioClone.volume = this.volume;
+        
+        // Play the sound
+        audioClone.play().catch(error => {
+            console.error('Error playing keyboard sound:', error);
+        });
+    }
+    
+    setVolume(value) {
+        this.volume = Math.max(0, Math.min(1, value));
+        this.keyboardSounds.forEach(sound => {
+            sound.volume = this.volume;
+        });
+    }
+    
+    toggle() {
+        this.enabled = !this.enabled;
+        return this.enabled;
+    }
+}
+
 class SoftOS {
     constructor() {
         this.windows = new Map();
         this.windowZIndex = 1000;
         this.activeWindow = null;
         this.sounds = new RetroSounds();
+        this.keyboardSounds = new KeyboardSoundManager();
         
         this.init();
     }
@@ -15,6 +88,7 @@ class SoftOS {
         this.updateTime();
         this.setupDockInteractions();
         this.setupWindowControls();
+        this.setupKeyboardSounds();
         
         // Update time every second
         setInterval(() => this.updateTime(), 1000);
@@ -268,15 +342,7 @@ class SoftOS {
                 console.error('❌ Error registering welcome window:', error);
             }
             
-            // Auto-launch soundboard in top-right corner
-            setTimeout(() => {
-                try {
-                    this.launchApp('soundboard');
-                    console.log('✅ Soundboard launched');
-                } catch (error) {
-                    console.error('❌ Error launching soundboard:', error);
-                }
-            }, 1500);
+            // Soundboard can be launched from desktop icon
             
         }, 1000);
     }
@@ -306,12 +372,31 @@ class SoftOS {
             });
         });
         
-        // Menu interactions
-        document.querySelectorAll('.menu-item').forEach(item => {
+        // Desktop icon launching
+        document.querySelectorAll('.desktop-icon').forEach(item => {
+            item.addEventListener('click', (e) => {
+                this.sounds.play('click');
+                this.launchApp(item.dataset.app);
+                this.addRippleEffect(item, e);
+            });
+            
+            // Double-click for faster launch
+            item.addEventListener('dblclick', (e) => {
+                this.sounds.play('windowOpen');
+                this.launchApp(item.dataset.app);
+            });
+        });
+        
+        // Dropdown menu interactions
+        document.querySelectorAll('.dropdown-item').forEach(item => {
             item.addEventListener('click', () => {
                 this.sounds.play('menuSelect');
-                this.showMenuDropdown(item);
+                this.handleDropdownAction(item.dataset.action);
             });
+        });
+        
+        // Menu hover sounds
+        document.querySelectorAll('.menu-item').forEach(item => {
             item.addEventListener('mouseenter', () => {
                 this.sounds.play('menuSelect');
             });
@@ -376,23 +461,40 @@ class SoftOS {
                 draggedWindow = e.target.closest('.window');
                 this.bringToFront(draggedWindow);
                 
+                // Get the current position of the window on screen
                 const rect = draggedWindow.getBoundingClientRect();
+                
+                // Calculate offset from mouse to top-left of window
                 dragOffset.x = e.clientX - rect.left;
                 dragOffset.y = e.clientY - rect.top;
                 
+                // Remove any transform and animation that might interfere
+                draggedWindow.style.transform = 'none';
+                draggedWindow.style.animation = 'none';
+                
+                // Set the exact current position as the starting point
+                draggedWindow.style.left = `${rect.left}px`;
+                draggedWindow.style.top = `${rect.top}px`;
+                draggedWindow.style.position = 'absolute';
+                
                 draggedWindow.style.cursor = 'grabbing';
                 document.body.style.userSelect = 'none';
+                
+                e.preventDefault();
             }
         });
         
         document.addEventListener('mousemove', (e) => {
             if (isDragging && draggedWindow) {
+                // Calculate new position based on mouse position minus the offset
                 const x = e.clientX - dragOffset.x;
                 const y = e.clientY - dragOffset.y;
                 
+                // Apply new position
                 draggedWindow.style.left = `${x}px`;
                 draggedWindow.style.top = `${y}px`;
-                draggedWindow.style.transform = 'none';
+                
+                e.preventDefault();
             }
         });
         
@@ -406,6 +508,26 @@ class SoftOS {
                 document.body.style.userSelect = '';
             }
         });
+    }
+    
+    setupKeyboardSounds() {
+        // Listen for all keydown events on the document
+        document.addEventListener('keydown', (e) => {
+            // Don't play sounds for modifier keys alone
+            if (e.key === 'Control' || e.key === 'Alt' || e.key === 'Shift' || e.key === 'Meta') {
+                return;
+            }
+            
+            // Don't play sounds for certain system keys
+            if (e.key === 'Tab' || e.key === 'Escape' || e.key.startsWith('F') && e.key.length <= 3) {
+                return;
+            }
+            
+            // Play random keyboard sound
+            this.keyboardSounds.playRandomKeySound();
+        });
+        
+        console.log('🎹 Keyboard sounds initialized - type to hear clicks!');
     }
     
     launchApp(appName) {
@@ -637,24 +759,53 @@ class SoftOS {
                     <div class="settings-category">🔒 Privacy</div>
                     <div class="settings-category">⚙️ General</div>
                 </div>
-                <div style="flex: 1; padding: 1rem;">
-                    <h3 style="margin-bottom: 1rem; font-weight: 300;">Appearance</h3>
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div class="setting-item">
-                            <label style="font-weight: 500;">Theme</label>
-                            <select style="margin-top: 0.5rem; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(184, 179, 173, 0.3);">
-                                <option>Soft Light</option>
-                                <option>Warm Dark</option>
-                                <option>Auto</option>
-                            </select>
+                <div style="flex: 1; padding: 1rem;" id="settings-content">
+                    <div id="appearance-settings">
+                        <h3 style="margin-bottom: 1rem; font-weight: 300;">Appearance</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div class="setting-item">
+                                <label style="font-weight: 500;">Theme</label>
+                                <select style="margin-top: 0.5rem; padding: 0.5rem; border-radius: 6px; border: 1px solid rgba(184, 179, 173, 0.3);">
+                                    <option>Soft Light</option>
+                                    <option>Warm Dark</option>
+                                    <option>Auto</option>
+                                </select>
+                            </div>
+                            <div class="setting-item">
+                                <label style="font-weight: 500;">Accent Color</label>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <div class="color-swatch" style="background: var(--primary-orange);"></div>
+                                    <div class="color-swatch active" style="background: var(--soft-orange);"></div>
+                                    <div class="color-swatch" style="background: var(--warm-orange);"></div>
+                                    <div class="color-swatch" style="background: var(--light-orange);"></div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="setting-item">
-                            <label style="font-weight: 500;">Accent Color</label>
-                            <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                                <div class="color-swatch" style="background: var(--primary-orange);"></div>
-                                <div class="color-swatch active" style="background: var(--soft-orange);"></div>
-                                <div class="color-swatch" style="background: var(--warm-orange);"></div>
-                                <div class="color-swatch" style="background: var(--light-orange);"></div>
+                    </div>
+                    
+                    <div id="sound-settings" style="display: none;">
+                        <h3 style="margin-bottom: 1rem; font-weight: 300;">Sound</h3>
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div class="setting-item">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <label style="font-weight: 500;">Keyboard Sounds</label>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" id="keyboard-sound-toggle" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <p style="font-size: 12px; color: var(--warm-gray); margin-top: 0.5rem;">Play random click sounds while typing</p>
+                            </div>
+                            <div class="setting-item">
+                                <label style="font-weight: 500;">Keyboard Volume</label>
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+                                    <input type="range" min="0" max="100" value="30" id="keyboard-volume-slider" 
+                                           style="flex: 1; accent-color: var(--primary-orange);">
+                                    <span id="keyboard-volume-display" style="font-size: 12px; color: var(--warm-gray); min-width: 30px;">30%</span>
+                                </div>
+                            </div>
+                            <div class="setting-item">
+                                <button class="soft-button" id="test-keyboard-sound">Test Keyboard Sound</button>
                             </div>
                         </div>
                     </div>
@@ -690,6 +841,46 @@ class SoftOS {
                     transform: scale(1.1);
                     box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
                 }
+                .toggle-switch {
+                    position: relative;
+                    display: inline-block;
+                    width: 44px;
+                    height: 24px;
+                }
+                .toggle-switch input {
+                    opacity: 0;
+                    width: 0;
+                    height: 0;
+                }
+                .slider {
+                    position: absolute;
+                    cursor: pointer;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background-color: rgba(184, 179, 173, 0.3);
+                    transition: .3s;
+                    border-radius: 24px;
+                }
+                .slider:before {
+                    position: absolute;
+                    content: "";
+                    height: 18px;
+                    width: 18px;
+                    left: 3px;
+                    bottom: 3px;
+                    background-color: white;
+                    transition: .3s;
+                    border-radius: 50%;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                }
+                input:checked + .slider {
+                    background-color: var(--primary-orange);
+                }
+                input:checked + .slider:before {
+                    transform: translateX(20px);
+                }
             </style>
         `;
     }
@@ -698,14 +889,17 @@ class SoftOS {
         return `
             <div style="height: 100%; display: flex; flex-direction: column;">
                 <div style="padding: 1rem; border-bottom: 1px solid rgba(184, 179, 173, 0.3);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div style="margin-bottom: 1rem;">
                         <h3 style="margin: 0; font-weight: 300; color: var(--charcoal);">Sound Effects</h3>
-                        <button class="soft-button" onclick="window.softOS.refreshSoundboard()" style="font-size: 12px; padding: 0.5rem 1rem;">🔄 Refresh</button>
                     </div>
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <label style="font-size: 13px; color: var(--warm-gray);">Volume:</label>
-                        <input type="range" min="0" max="100" value="50" id="soundboard-volume" 
-                               style="flex: 1; accent-color: var(--primary-orange);">
+                        <div class="volume-knob-container">
+                            <div class="volume-knob" id="volume-knob">
+                                <div class="knob-indicator"></div>
+                                <div class="knob-center"></div>
+                            </div>
+                        </div>
                         <span id="volume-display" style="font-size: 12px; color: var(--warm-gray); min-width: 30px;">50%</span>
                     </div>
                 </div>
@@ -747,24 +941,20 @@ class SoftOS {
                     text-align: center;
                     padding: 0.5rem;
                     box-shadow: 
-                        0 4px 8px rgba(45, 42, 37, 0.2),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.8),
-                        inset 0 -1px 0 rgba(184, 179, 173, 0.5),
-                        inset 1px 0 0 rgba(255, 255, 255, 0.6),
-                        inset -1px 0 0 rgba(184, 179, 173, 0.4);
+                        0 2px 6px rgba(45, 42, 37, 0.15),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+                        inset 0 -1px 0 rgba(184, 179, 173, 0.2);
                 }
                 .sound-button:hover {
                     background: linear-gradient(145deg, 
-                        rgba(255, 240, 200, 0.95) 0%,
+                        rgba(250, 245, 240, 0.95) 0%,
                         var(--light-cream) 25%,
                         var(--cream) 75%,
-                        rgba(184, 179, 173, 0.4) 100%);
+                        rgba(184, 179, 173, 0.3) 100%);
                     box-shadow: 
-                        0 6px 12px rgba(45, 42, 37, 0.25),
-                        inset 0 1px 0 rgba(255, 255, 255, 0.9),
-                        inset 0 -1px 0 rgba(184, 179, 173, 0.6),
-                        inset 1px 0 0 rgba(255, 255, 255, 0.7),
-                        inset -1px 0 0 rgba(184, 179, 173, 0.5);
+                        0 3px 8px rgba(45, 42, 37, 0.2),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+                        inset 0 -1px 0 rgba(184, 179, 173, 0.3);
                 }
                 .sound-button:active {
                     background: linear-gradient(145deg, 
@@ -779,22 +969,92 @@ class SoftOS {
                     font-size: 24px;
                     margin-bottom: 0.25rem;
                 }
-                #soundboard-volume {
-                    height: 6px;
-                    border-radius: 3px;
-                    background: rgba(184, 179, 173, 0.3);
-                    outline: none;
-                    border: none;
+                .volume-knob-container {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex: 1;
+                    max-width: 200px;
                 }
-                #soundboard-volume::-webkit-slider-thumb {
-                    appearance: none;
-                    width: 16px;
-                    height: 16px;
+                
+                .volume-knob {
+                    width: 50px;
+                    height: 50px;
                     border-radius: 50%;
-                    background: var(--primary-orange);
-                    border: 2px solid white;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                    position: relative;
                     cursor: pointer;
+                    user-select: none;
+                    
+                    /* Matte neomorphic styling */
+                    background: linear-gradient(145deg, 
+                        rgba(250, 245, 240, 0.9) 0%,
+                        var(--cream) 25%,
+                        var(--warm-cream) 75%,
+                        rgba(184, 179, 173, 0.4) 100%);
+                    
+                    /* Subtle outer shadow for depth */
+                    box-shadow: 
+                        3px 3px 8px rgba(184, 179, 173, 0.3),
+                        -2px -2px 6px rgba(255, 255, 255, 0.4),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.3),
+                        inset 0 -1px 1px rgba(184, 179, 173, 0.2);
+                    
+                    border: 1px solid rgba(184, 179, 173, 0.3);
+                    transition: all 0.1s ease;
+                }
+                
+                .volume-knob:hover {
+                    /* Subtle pressed look on hover */
+                    box-shadow: 
+                        2px 2px 6px rgba(184, 179, 173, 0.4),
+                        -2px -2px 6px rgba(255, 255, 255, 0.5),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.4),
+                        inset 0 -1px 2px rgba(184, 179, 173, 0.3);
+                }
+                
+                .volume-knob:active {
+                    /* Pressed state */
+                    box-shadow: 
+                        inset 2px 2px 4px rgba(184, 179, 173, 0.3),
+                        inset -1px -1px 3px rgba(255, 255, 255, 0.4),
+                        1px 1px 3px rgba(184, 179, 173, 0.2);
+                }
+                
+                .knob-center {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    width: 20px;
+                    height: 20px;
+                    border-radius: 50%;
+                    
+                    /* Matte inner knob styling */
+                    background: linear-gradient(145deg,
+                        rgba(248, 243, 238, 0.9) 0%,
+                        var(--warm-cream) 50%,
+                        rgba(184, 179, 173, 0.3) 100%);
+                    
+                    box-shadow: 
+                        inset 1px 1px 2px rgba(255, 255, 255, 0.4),
+                        inset -1px -1px 2px rgba(184, 179, 173, 0.2),
+                        0 1px 2px rgba(0, 0, 0, 0.05);
+                }
+                
+                .knob-indicator {
+                    position: absolute;
+                    top: 8px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 3px;
+                    height: 12px;
+                    background: linear-gradient(180deg,
+                        var(--primary-orange) 0%,
+                        var(--soft-orange) 100%);
+                    border-radius: 1.5px;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+                    transform-origin: center 17px;
+                    transition: transform 0.1s ease;
                 }
             </style>
         `;
@@ -899,6 +1159,91 @@ class SoftOS {
         element.appendChild(ripple);
         
         setTimeout(() => ripple.remove(), 600);
+    }
+    
+    handleDropdownAction(action) {
+        switch(action) {
+            case 'open-finder':
+                this.launchApp('finder');
+                break;
+            case 'recent-files':
+                // Could show recent files in finder
+                this.launchApp('finder');
+                break;
+            case 'new-folder':
+                // Could create new folder dialog
+                this.sounds.play('windowOpen');
+                break;
+            case 'open-settings':
+                this.launchApp('settings');
+                break;
+            case 'about':
+                this.showAboutDialog();
+                break;
+            case 'restart':
+                this.showRestartDialog();
+                break;
+            case 'shutdown':
+                this.showShutdownDialog();
+                break;
+            default:
+                console.log('Unknown action:', action);
+        }
+    }
+    
+    showAboutDialog() {
+        const aboutConfig = {
+            title: 'About kevOS',
+            content: `
+                <div style="text-align: center; padding: 2rem;">
+                    <div style="font-size: 48px; margin-bottom: 1rem;">🖥️</div>
+                    <h2 style="margin: 0 0 1rem 0; font-weight: 300;">kevOS</h2>
+                    <p style="color: var(--warm-gray); margin-bottom: 1rem;">Version 1.0</p>
+                    <p style="font-size: 14px; line-height: 1.6;">A warm, tactile computing experience inspired by retro interfaces with modern web technologies.</p>
+                </div>
+            `,
+            width: '320px',
+            height: '280px'
+        };
+        this.createWindow(aboutConfig);
+    }
+    
+    showRestartDialog() {
+        const restartConfig = {
+            title: 'Restart kevOS',
+            content: `
+                <div style="padding: 2rem; text-align: center;">
+                    <div style="font-size: 32px; margin-bottom: 1rem;">🔄</div>
+                    <p style="margin-bottom: 2rem;">Are you sure you want to restart kevOS?</p>
+                    <div style="display: flex; gap: 1rem; justify-content: center;">
+                        <button class="soft-button" onclick="window.location.reload()">Restart</button>
+                        <button class="soft-button" onclick="window.softOS.closeWindow(this.closest('.window').id)">Cancel</button>
+                    </div>
+                </div>
+            `,
+            width: '300px',
+            height: '220px'
+        };
+        this.createWindow(restartConfig);
+    }
+    
+    showShutdownDialog() {
+        const shutdownConfig = {
+            title: 'Shut Down',
+            content: `
+                <div style="padding: 2rem; text-align: center;">
+                    <div style="font-size: 32px; margin-bottom: 1rem;">⏻</div>
+                    <p style="margin-bottom: 2rem;">Are you sure you want to shut down kevOS?</p>
+                    <div style="display: flex; gap: 1rem; justify-content: center;">
+                        <button class="soft-button" onclick="window.close()">Shut Down</button>
+                        <button class="soft-button" onclick="window.softOS.closeWindow(this.closest('.window').id)">Cancel</button>
+                    </div>
+                </div>
+            `,
+            width: '300px',
+            height: '220px'
+        };
+        this.createWindow(shutdownConfig);
     }
     
     getStarted() {
@@ -1093,15 +1438,34 @@ class SoftOS {
     setupSettings(windowElement) {
         const categories = windowElement.querySelectorAll('.settings-category');
         const colorSwatches = windowElement.querySelectorAll('.color-swatch');
+        const settingsContent = windowElement.querySelector('#settings-content');
+        const appearanceSettings = windowElement.querySelector('#appearance-settings');
+        const soundSettings = windowElement.querySelector('#sound-settings');
         
+        // Category switching
         categories.forEach(category => {
             category.addEventListener('click', () => {
                 this.sounds.play('click');
                 categories.forEach(c => c.classList.remove('active'));
                 category.classList.add('active');
+                
+                // Switch content based on category
+                const categoryText = category.textContent.trim();
+                if (categoryText.includes('Appearance')) {
+                    if (appearanceSettings) appearanceSettings.style.display = 'block';
+                    if (soundSettings) soundSettings.style.display = 'none';
+                } else if (categoryText.includes('Sound')) {
+                    if (appearanceSettings) appearanceSettings.style.display = 'none';
+                    if (soundSettings) soundSettings.style.display = 'block';
+                } else {
+                    // Hide both for other categories
+                    if (appearanceSettings) appearanceSettings.style.display = 'none';
+                    if (soundSettings) soundSettings.style.display = 'none';
+                }
             });
         });
         
+        // Color swatches
         colorSwatches.forEach(swatch => {
             swatch.addEventListener('click', () => {
                 this.sounds.play('click');
@@ -1109,21 +1473,126 @@ class SoftOS {
                 swatch.classList.add('active');
             });
         });
+        
+        // Keyboard sound controls
+        const keyboardToggle = windowElement.querySelector('#keyboard-sound-toggle');
+        const keyboardVolumeSlider = windowElement.querySelector('#keyboard-volume-slider');
+        const keyboardVolumeDisplay = windowElement.querySelector('#keyboard-volume-display');
+        const testButton = windowElement.querySelector('#test-keyboard-sound');
+        
+        if (keyboardToggle) {
+            keyboardToggle.addEventListener('change', (e) => {
+                this.sounds.play('click');
+                const isEnabled = this.keyboardSounds.toggle();
+                console.log('Keyboard sounds:', isEnabled ? 'enabled' : 'disabled');
+            });
+        }
+        
+        if (keyboardVolumeSlider && keyboardVolumeDisplay) {
+            keyboardVolumeSlider.addEventListener('input', (e) => {
+                const volume = e.target.value / 100;
+                this.keyboardSounds.setVolume(volume);
+                keyboardVolumeDisplay.textContent = e.target.value + '%';
+            });
+        }
+        
+        if (testButton) {
+            testButton.addEventListener('click', () => {
+                this.sounds.play('click');
+                this.keyboardSounds.playRandomKeySound();
+            });
+        }
     }
     
     setupSoundboard(windowElement) {
         this.soundboardAudio = new Map();
         this.soundboardVolume = 0.5;
         
-        // Set up volume control
-        const volumeSlider = windowElement.querySelector('#soundboard-volume');
+        // Set up volume knob control
+        const volumeKnob = windowElement.querySelector('#volume-knob');
         const volumeDisplay = windowElement.querySelector('#volume-display');
         
-        if (volumeSlider && volumeDisplay) {
-            volumeSlider.addEventListener('input', (e) => {
-                this.soundboardVolume = e.target.value / 100;
-                volumeDisplay.textContent = e.target.value + '%';
+        if (volumeKnob && volumeDisplay) {
+            let isDragging = false;
+            let currentStep = 10; // Start at 50% (step 10 of 20)
+            const totalSteps = 20; // 20 steps from 0-100%
+            const stepSize = 100 / totalSteps; // 5% per step
+            
+            // Set initial knob position
+            const indicator = volumeKnob.querySelector('.knob-indicator');
+            
+            const updateVolume = (step, playClick = false) => {
+                const newStep = Math.max(0, Math.min(totalSteps, step));
+                if (newStep !== currentStep && playClick) {
+                    // Play simple knob click sound
+                    this.sounds.play('knobClick');
+                }
+                
+                currentStep = newStep;
+                const volume = (currentStep / totalSteps) * 100;
+                this.soundboardVolume = volume / 100;
+                volumeDisplay.textContent = Math.round(volume) + '%';
+                
+                // Update knob visual with stepped rotation
+                const rotation = (currentStep / totalSteps) * 270 - 135; // Map steps to -135° to +135°
+                indicator.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+            };
+            
+            const getStepFromAngle = (centerX, centerY, mouseX, mouseY) => {
+                const angle = Math.atan2(mouseY - centerY, mouseX - centerX);
+                const degrees = (angle * 180 / Math.PI + 90 + 360) % 360; // Convert to 0-360°, with 0° at top
+                
+                // Map angle to step (0-270° range, starting from -135° to +135°)
+                let mappedAngle;
+                if (degrees <= 135) {
+                    mappedAngle = degrees + 135; // 0-135° becomes 135-270°
+                } else {
+                    mappedAngle = degrees - 225; // 136-360° becomes -89° to 135°, but we only want 225-360° to become 0-135°
+                    if (mappedAngle < 0) mappedAngle = 0;
+                }
+                
+                // Convert angle to discrete step
+                const rawStep = (mappedAngle / 270) * totalSteps;
+                return Math.round(rawStep); // Round to nearest step
+            };
+            
+            volumeKnob.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                volumeKnob.style.cursor = 'grabbing';
+                document.body.style.userSelect = 'none';
+                e.preventDefault();
             });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                const rect = volumeKnob.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const newStep = getStepFromAngle(centerX, centerY, e.clientX, e.clientY);
+                updateVolume(newStep, true); // Play click sound when dragging
+                
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    volumeKnob.style.cursor = 'pointer';
+                    document.body.style.userSelect = '';
+                }
+            });
+            
+            // Add scroll wheel support for fine control
+            volumeKnob.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const direction = e.deltaY > 0 ? -1 : 1;
+                updateVolume(currentStep + direction, true);
+            });
+            
+            // Initialize volume
+            updateVolume(currentStep, false);
         }
         
         // Load audio files (simulated - would normally scan sounds folder)
@@ -1134,59 +1603,113 @@ class SoftOS {
         const soundGrid = windowElement.querySelector('#soundboard-grid');
         if (!soundGrid) return;
         
+        soundGrid.innerHTML = '<div style="text-align: center; padding: 2rem;"><div style="font-size: 24px;">🔄 Loading sounds...</div></div>';
+        
+        let allSounds = [];
+        
         try {
-            // Load the manifest file
+            // Try to load from manifest.json first
             const response = await fetch('sounds/manifest.json');
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            if (response.ok) {
+                const manifestSounds = await response.json();
+                allSounds = [...manifestSounds];
+                console.log(`✅ Loaded ${manifestSounds.length} sounds from manifest.json`);
             }
-            const sounds = await response.json();
-            
-            soundGrid.innerHTML = '';
-            
-            if (sounds.length === 0) {
-                soundGrid.innerHTML = `
-                    <div style="text-align: center; color: var(--warm-gray); padding: 2rem; grid-column: 1 / -1;">
-                        <div style="font-size: 48px; margin-bottom: 1rem;">🎵</div>
-                        <p>No audio files found</p>
-                        <p style="font-size: 12px; margin-top: 0.5rem;">Add files to sounds/ and update manifest.json</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            sounds.forEach(sound => {
-                const button = document.createElement('div');
-                button.className = 'sound-button';
-                button.innerHTML = `
-                    <div class="icon">${sound.emoji}</div>
-                    <div>${sound.name}</div>
-                `;
-                
-                button.addEventListener('click', () => {
-                    this.playSound(sound.file, sound.name);
-                });
-                
-                soundGrid.appendChild(button);
-                
-                // Preload the audio
-                if (sound.file) {
-                    const audio = new Audio(`sounds/${sound.file}`);
-                    this.soundboardAudio.set(sound.file, audio);
-                }
-            });
-            
         } catch (error) {
-            console.error('Error loading soundboard manifest:', error);
+            console.log('No manifest.json found, will try to detect files');
+        }
+        
+        // Also try to detect some actual files you might have added
+        const knownFiles = [
+            'airhorn.mp3', 'applause.mp3', 'wow.mp3', 'clash of clans.mp3',
+            'boom.mp3', 'bruh.mp3', 'oof.mp3', 'nice.mp3', 'epic.mp3'
+        ];
+        
+        for (const filename of knownFiles) {
+            // Skip if already in manifest
+            if (allSounds.find(s => s.file === filename)) continue;
+            
+            try {
+                const testResponse = await fetch(`sounds/${filename}`, { method: 'HEAD' });
+                if (testResponse.ok) {
+                    const name = filename.replace(/\.(mp3|wav|ogg|m4a)$/i, '')
+                                        .replace(/-/g, ' ')
+                                        .replace(/_/g, ' ')
+                                        .split(' ')
+                                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                        .join(' ');
+                    
+                    const emoji = this.getEmojiForFilename(filename);
+                    
+                    allSounds.push({
+                        name: name,
+                        file: filename,
+                        emoji: emoji
+                    });
+                    
+                    console.log(`🔍 Found: ${filename}`);
+                }
+            } catch (error) {
+                // File doesn't exist, skip
+            }
+        }
+        
+        // Clear loading message
+        soundGrid.innerHTML = '';
+        
+        if (allSounds.length === 0) {
             soundGrid.innerHTML = `
                 <div style="text-align: center; color: var(--warm-gray); padding: 2rem; grid-column: 1 / -1;">
-                    <div style="font-size: 48px; margin-bottom: 1rem;">⚠️</div>
-                    <p>Error loading sounds</p>
-                    <p style="font-size: 12px; margin-top: 0.5rem;">Check sounds/manifest.json</p>
-                    <p style="font-size: 11px; color: var(--warm-gray); margin-top: 0.5rem;">${error.message}</p>
+                    <div style="font-size: 48px; margin-bottom: 1rem;">🎵</div>
+                    <p>No audio files found</p>
+                    <p style="font-size: 12px; margin-top: 0.5rem;">Add .mp3, .wav, .ogg, or .m4a files to the sounds/ folder</p>
+                    <p style="font-size: 11px; margin-top: 0.5rem;">Update manifest.json or use common filenames</p>
                 </div>
             `;
+            return;
         }
+        
+        // Display all sounds
+        allSounds.forEach(sound => {
+            const button = document.createElement('div');
+            button.className = 'sound-button';
+            button.innerHTML = `
+                <div class="icon">${sound.emoji || '🔊'}</div>
+                <div style="font-size: 10px; line-height: 1.1;">${sound.name}</div>
+            `;
+            
+            button.addEventListener('click', () => {
+                this.playSound(sound.file, sound.name);
+            });
+            
+            soundGrid.appendChild(button);
+            
+            // Preload the audio
+            if (sound.file) {
+                const audio = new Audio(`sounds/${sound.file}`);
+                audio.volume = this.soundboardVolume || 0.5;
+                this.soundboardAudio.set(sound.file, audio);
+            }
+        });
+        
+        console.log(`✅ Loaded ${allSounds.length} total sounds`);
+    }
+    
+    getEmojiForFilename(filename) {
+        const name = filename.toLowerCase();
+        
+        if (name.includes('airhorn')) return '📯';
+        if (name.includes('applause')) return '👏';
+        if (name.includes('wow')) return '😲';
+        if (name.includes('boom')) return '💥';
+        if (name.includes('bruh')) return '🤦';
+        if (name.includes('oof')) return '😵';
+        if (name.includes('nice')) return '👌';
+        if (name.includes('epic')) return '⭐';
+        if (name.includes('clash')) return '⚔️';
+        if (name.includes('launcher') || name.includes('kevos')) return '🚀';
+        
+        return '🔊';
     }
     
     playSound(audioFile, displayName) {
