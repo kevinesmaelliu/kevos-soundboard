@@ -23,6 +23,7 @@
     --font-system: "Neuton", "Geneva", "Lucida Grande", "Helvetica Neue", Helvetica, Arial, serif;
     --font-mono: "Monaco", "Courier New", monospace;
     --font-classic: "Neuton", "Charcoal", "Chicago", system-ui, serif;
+    --font-pixel: "Doto", monospace;
     
     /* Spacing */
     --space-xs: 0.25rem;
@@ -82,6 +83,8 @@ body {
 .start-content {
     text-align: center;
     color: var(--cream);
+    position: relative;
+    z-index: 2; /* Above video background */
     animation: startContentFloat 3s ease-in-out infinite alternate;
 }
 
@@ -157,35 +160,55 @@ body {
 .start-button {
     position: relative;
     background: linear-gradient(135deg, 
-        var(--primary-orange) 0%, 
-        var(--light-orange) 100%);
-    border: none;
-    border-radius: var(--radius-lg);
+        rgba(255, 255, 255, 0.15) 0%, 
+        rgba(255, 255, 255, 0.05) 100%);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    border: 1px solid transparent;
+    background-clip: padding-box;
     padding: 1.5rem 3rem;
     font-family: var(--font-system);
     font-size: 1.2rem;
     font-weight: 600;
-    color: var(--cream);
+    color: rgba(255, 255, 255, 0.9);
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 
-        0 8px 24px rgba(255, 107, 53, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(255, 255, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
     overflow: hidden;
+    z-index: 10;
+    pointer-events: auto;
+    width: 250px;
+    height: 74px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    clip-path: path("M250 37C250 66.2916 223.958 74 125 74C26.0416 74 0 66.2916 0 37C0 7.70834 26.0416 0 125 0C223.958 0 250 7.70834 250 37Z");
 }
 
 .start-button:hover {
-    transform: translateY(-2px);
+    background: linear-gradient(135deg, 
+        rgba(255, 255, 255, 0.2) 0%, 
+        rgba(255, 255, 255, 0.08) 100%);
     box-shadow: 
-        0 12px 32px rgba(255, 107, 53, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        0 12px 40px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+        0 0 30px rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 1);
+    transform: translateY(-1px);
 }
 
 .start-button:active {
-    transform: translateY(0);
+    background: rgba(255, 255, 255, 0.08);
     box-shadow: 
-        0 4px 16px rgba(255, 107, 53, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        0 4px 20px rgba(0, 0, 0, 0.1),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .start-button-text {
@@ -228,6 +251,27 @@ body {
     }
 }
 
+/* Start Screen Video Background */
+.start-video-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.start-video-background video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none; /* Allow clicks to pass through */
+}
+
 /* kevOS Launch Screen */
 .kevos-launch-screen {
     position: fixed;
@@ -235,11 +279,6 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, 
-        var(--charcoal) 0%, 
-        #3d3a35 30%, 
-        var(--dark-gray) 60%, 
-        var(--warm-gray) 100%);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -247,9 +286,32 @@ body {
     animation: launchFadeIn 0.8s ease-out;
 }
 
+/* Launch Screen Video Background */
+.launch-video-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    overflow: hidden;
+}
+
+.launch-video-background video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none; /* Allow clicks to pass through */
+}
+
 .launch-content {
     text-align: center;
     color: var(--cream);
+    position: relative;
+    z-index: 2; /* Above video background */
     animation: launchContentSlideUp 1.2s ease-out 0.3s both;
 }
 
@@ -463,6 +525,53 @@ body::before {
     display: flex;
     flex-direction: column;
     position: relative;
+    /* Removed background image to allow WebGL to show through */
+}
+
+/* Video Animation Background Layer */
+.webgl-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    overflow: hidden;
+    background: #2a2722; /* Fallback color */
+}
+
+/* Ensure the video fills the entire background */
+.webgl-background video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Desktop content with semi-transparent wallpaper overlay */
+.desktop-content {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+}
+
+/* Add semi-transparent wallpaper as pseudo-element */
+.desktop-content::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: url('assets/wallpapers/kevOS.png');
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    opacity: 0.9; /* 50% opacity for wallpaper only */
+    z-index: -1; /* Behind desktop content but above WebGL */
+    pointer-events: none;
 }
 
 /* Retro Physical Menu Bar */
@@ -701,12 +810,6 @@ body::before {
     margin: 4px 0;
 }
 
-/* Desktop Content */
-.desktop-content {
-    flex: 1;
-    position: relative;
-    overflow: visible;  /* Changed from hidden to visible to ensure dock is not cut off */
-}
 
 /* Desktop Icons */
 .desktop-icons {
@@ -733,7 +836,7 @@ body::before {
 
 .desktop-icon:hover {
     background: rgba(255, 107, 53, 0.1);
-    transform: translateY(-2px);
+    /* Removed transform to keep entire icon static */
 }
 
 .desktop-icon:active {
@@ -742,30 +845,88 @@ body::before {
 }
 
 .desktop-icon-image {
-    width: 48px;
-    height: 48px;
-    border-radius: var(--radius-md);
+    width: 60px;
+    height: 60px;
     margin-bottom: var(--space-xs);
-    box-shadow: 
-        0 4px 12px rgba(45, 42, 37, 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8),
-        inset 0 -1px 0 rgba(184, 179, 173, 0.5),
-        inset 1px 0 0 rgba(255, 255, 255, 0.6),
-        inset -1px 0 0 rgba(184, 179, 173, 0.4);
-    border: 2px solid;
-    border-color: rgba(255, 255, 255, 0.8) rgba(184, 179, 173, 0.6) rgba(184, 179, 173, 0.8) rgba(255, 255, 255, 0.6);
+    position: relative;
     transition: all 0.2s ease;
 }
 
-.desktop-icon:hover .desktop-icon-image {
-    box-shadow: 
-        0 6px 16px rgba(45, 42, 37, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9),
-        inset 0 -1px 0 rgba(184, 179, 173, 0.6),
-        inset 1px 0 0 rgba(255, 255, 255, 0.7),
-        inset -1px 0 0 rgba(184, 179, 173, 0.5);
-    transform: scale(1.05);
+/* =================================
+   App Icon Button Component
+   ================================= */
+
+/* Base app icon button component */
+.app-icon-button {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    display: inline-block;
 }
+
+/* Shell layer - always visible */
+.app-icon-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('assets/buttons/App Icon/Shell.png');
+    background-size: 100% 100%; /* Fill entire container */
+    background-repeat: no-repeat;
+    background-position: center;
+    z-index: 1;
+}
+
+/* Default state icon - centered in shell */
+.app-icon-button::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 1px;
+    width: 100%;
+    height: 100%;
+    background-image: url('assets/buttons/App Icon/Default.png');
+    background-size: 52px 52px; /* Proper size for default/clicked states */
+    background-repeat: no-repeat;
+    background-position: center center; /* Ensure absolute centering */
+    z-index: 2;
+    transition: background-image 0.1s ease;
+}
+
+/* Clicked state */
+.app-icon-button:active::after,
+.app-icon-button.clicked::after {
+    background-image: url('assets/buttons/App Icon/Clicked.png');
+}
+
+/* Hover effect - only scale the icon content slightly */
+.app-icon-button:hover::after {
+    background-size: 56px 56px; /* 10% larger than base size */
+}
+
+/* Dock size variant - smaller for dock icons */
+.app-icon-button.dock-size {
+    width: 48px;
+    height: 48px;
+}
+
+/* Dock size shell and content sizing */
+.app-icon-button.dock-size::before {
+    background-size: 48px 48px;
+}
+
+.app-icon-button.dock-size::after {
+    background-size: 48px 48px;
+}
+
+/* Dock size hover effect */
+.app-icon-button.dock-size:hover::after {
+    background-size: 53px 53px; /* 10% larger than dock base size */
+}
+
+/* Old desktop icon styles - no longer needed with app-icon-button component */
 
 .desktop-icon-label {
     font-size: 11px;
@@ -779,6 +940,7 @@ body::before {
     border-radius: 4px;
     background: rgba(253, 246, 240, 0.9);
     border: 1px solid rgba(184, 179, 173, 0.3);
+    margin-top: 8px;
 }
 
 /* Retro Physical Dock */
@@ -810,151 +972,58 @@ body::before {
     width: 48px;
     height: 48px;
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
     position: relative;
-    transform: translateY(0) scale(1);
+    /* Removed transition and transform - using app-icon-button component only */
 }
 
-.dock-item:hover {
-    transform: translateY(-6px) scale(1.08);
-}
+/* Dock item hover/active states removed - using app-icon-button component hover only */
 
-.dock-item:active {
-    transform: translateY(2px) scale(0.98);
-    transition: all 0.1s ease-out;
-}
+/* Old dock-icon styles replaced by app-icon-button component */
 
-.dock-icon {
-    width: 100%;
-    height: 100%;
-    border-radius: var(--radius-md);
-    box-shadow: 
-        0 2px 8px var(--light-shadow),
-        0 1px 0 rgba(255, 255, 255, 0.2) inset;
-    position: relative;
-    transition: inherit;
-    overflow: hidden;
-}
-
-.dock-icon::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 30%;
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
-    border-radius: var(--radius-md) var(--radius-md) 0 0;
-    pointer-events: none;
-}
-
+/* Finder icon now uses shell design */
 .finder-icon {
-    background: linear-gradient(135deg, var(--soft-orange) 0%, var(--primary-orange) 100%);
     position: relative;
+    /* Shell inherited from .dock-icon */
 }
 
-.finder-icon::before {
-    content: '';
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    width: 24px;
-    height: 18px;
-    background: 
-        linear-gradient(to bottom, transparent 40%, rgba(255, 255, 255, 0.3) 40%, rgba(255, 255, 255, 0.3) 60%, transparent 60%),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.1) 100%);
-    border-radius: 3px;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-}
+/* Old finder icon styling disabled */
+/* .finder-icon::before styles disabled to use shell */
 
-.finder-icon::after {
-    content: '';
-    position: absolute;
-    top: 8px;
-    left: 16px;
-    width: 16px;
-    height: 8px;
-    background: rgba(255, 255, 255, 0.6);
-    border-radius: 2px 2px 0 0;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
+/* Old finder icon ::after disabled to use shell */
 
+/* Notes icon now uses shell design */
 .notes-icon {
-    background: linear-gradient(135deg, var(--warm-cream) 0%, var(--peach) 100%);
     position: relative;
+    /* Shell inherited from .dock-icon */
 }
 
-.notes-icon::before {
-    content: '';
-    position: absolute;
-    top: 8px;
-    left: 12px;
-    width: 24px;
-    height: 32px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 2px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+/* Old notes icon ::before disabled */
 
-.notes-icon::after {
-    content: '';
-    position: absolute;
-    top: 16px;
-    left: 15px;
-    width: 18px;
-    height: 1px;
-    background: var(--primary-orange);
-    box-shadow: 
-        0 4px 0 var(--primary-orange),
-        0 8px 0 var(--primary-orange),
-        0 12px 0 var(--primary-orange);
-}
+/* Old notes icon ::after disabled */
 
+/* Calc icon now uses shell design */
 .calc-icon {
-    background: linear-gradient(135deg, var(--warm-gray) 0%, var(--dark-gray) 100%);
     position: relative;
+    /* Shell inherited from .dock-icon */
 }
 
-.calc-icon::before {
-    content: '';
-    position: absolute;
-    top: 6px;
-    left: 8px;
-    width: 32px;
-    height: 36px;
-    background: rgba(0, 0, 0, 0.8);
-    border-radius: 4px;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
-}
+/* Old calc icon ::before disabled */
 
-.calc-icon::after {
-    content: '123';
-    position: absolute;
-    top: 12px;
-    left: 14px;
-    font-size: 8px;
-    font-weight: bold;
-    color: var(--light-orange);
-    font-family: var(--font-mono);
-}
+/* Old calc icon ::after disabled */
 
+/* Settings icon now uses shell design */
 .settings-icon {
-    background: linear-gradient(135deg, var(--light-orange) 0%, var(--warm-orange) 100%);
     position: relative;
+    /* Shell inherited from .dock-icon */
 }
 
+/* MP3 icon now uses shell design like other app icons */
 .mp3-icon {
-    background: linear-gradient(135deg, #ff6b35 0%, #ff9558 100%);
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    /* Shell and content styling inherited from .desktop-icon-image */
 }
 
-.mp3-icon::before {
-    content: '🎵';
-    font-size: 24px;
-}
+/* MP3 dock icon - no emoji, just shell */
 
 .settings-icon::before {
     content: '';
@@ -994,71 +1063,22 @@ body::before {
 }
 
 .soundboard-icon {
-    background: linear-gradient(135deg, var(--soft-orange) 0%, var(--primary-orange) 100%);
+    /* Disabled old styling to use new shell design */
+    /* background: linear-gradient(135deg, var(--soft-orange) 0%, var(--primary-orange) 100%); */
     position: relative;
 }
 
-.soundboard-icon::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 20px;
-    height: 16px;
-    background: 
-        linear-gradient(90deg, 
-            rgba(255, 255, 255, 0.8) 0%, 
-            rgba(255, 255, 255, 0.8) 2px,
-            transparent 2px, transparent 6px,
-            rgba(255, 255, 255, 0.8) 6px,
-            rgba(255, 255, 255, 0.8) 8px,
-            transparent 8px, transparent 12px,
-            rgba(255, 255, 255, 0.8) 12px,
-            rgba(255, 255, 255, 0.8) 14px,
-            transparent 14px, transparent 18px,
-            rgba(255, 255, 255, 0.8) 18px,
-            rgba(255, 255, 255, 0.8) 20px
-        ),
-        linear-gradient(0deg,
-            rgba(255, 255, 255, 0.6) 0%,
-            rgba(255, 255, 255, 0.6) 3px,
-            transparent 3px, transparent 5px,
-            rgba(255, 255, 255, 0.6) 5px,
-            rgba(255, 255, 255, 0.6) 8px,
-            transparent 8px, transparent 10px,
-            rgba(255, 255, 255, 0.6) 10px,
-            rgba(255, 255, 255, 0.6) 13px,
-            transparent 13px, transparent 16px
-        );
-    border-radius: 3px;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-}
+/* Removed conflicting soundboard-icon::before rule to allow shell to show */
 
-.soundboard-icon::after {
-    content: '';
-    position: absolute;
-    top: 25%;
-    right: 25%;
-    width: 6px;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 50%;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
+/* Old soundboard-icon::after styles moved up to line 826 and disabled there */
 
+/* MP3 player icon now uses shell design like other app icons */
 .mp3player-icon {
-    background: linear-gradient(135deg, #ff6b35 0%, #ff9558 100%);
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    /* Shell and content styling inherited from .desktop-icon-image */
 }
 
-.mp3player-icon::before {
-    content: '🎵';
-    font-size: 28px;
-}
+/* MP3 player desktop icon - no emoji, just shell */
 
 /* Custom window styling */
 .custom-window {
@@ -1073,17 +1093,22 @@ body::before {
     width: 100%;
     height: 100%;
     background: linear-gradient(145deg, 
-        rgba(250, 245, 240, 0.98) 0%,
-        var(--cream) 25%,
-        var(--warm-cream) 75%,
-        rgba(184, 179, 173, 0.4) 100%);
+        #f8f7f5 0%,
+        #f2f0ee 15%,
+        #eeecea 30%,
+        #e8e6e3 50%,
+        #e2dfd9 70%,
+        #ddd9d5 85%,
+        #d6d2ce 100%);
     border-radius: 28px;
     padding: 0;
     box-shadow: 
-        0 12px 32px rgba(45, 42, 37, 0.3),
-        inset 0 2px 6px rgba(255, 255, 255, 0.4),
-        inset 0 -2px 6px rgba(184, 179, 173, 0.2);
-    border: 2px solid rgba(255, 255, 255, 0.6);
+        0 0 0 1px rgba(0, 0, 0, 0.1),
+        0 2px 4px rgba(0, 0, 0, 0.15),
+        0 8px 24px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+    border: none;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1107,24 +1132,52 @@ body::before {
     border: none;
     cursor: pointer;
     transition: all 0.15s ease;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    position: relative;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 1px 2px rgba(255, 255, 255, 0.3);
 }
 
 .soundboard-close {
-    background: linear-gradient(145deg, #ff6b6b, #ff5252);
+    background: linear-gradient(145deg, #b8432a, #892A13, #6b1f0f);
+    border: 0.5px solid rgba(137, 42, 19, 0.4);
 }
 
 .soundboard-minimize {
-    background: linear-gradient(145deg, #ffd93d, #ffca28);
+    background: linear-gradient(145deg, #e5886f, #CC6D55, #a55641);
+    border: 0.5px solid rgba(204, 109, 85, 0.4);
 }
 
 .soundboard-maximize {
-    background: linear-gradient(145deg, #6bcf7f, #4caf50);
+    background: linear-gradient(145deg, #dc6541, #C54424, #9e351c);
+    border: 0.5px solid rgba(197, 68, 36, 0.4);
 }
 
 .soundboard-control-btn:hover {
-    transform: scale(1.1);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    transform: translateY(-1px);
+    box-shadow: 
+        0 3px 6px rgba(0, 0, 0, 0.4),
+        inset 0 1px 3px rgba(255, 255, 255, 0.4);
+}
+
+.soundboard-control-btn:active {
+    transform: translateY(1px);
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.4),
+        inset 0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 -1px 2px rgba(255, 255, 255, 0.2);
+}
+
+.soundboard-close:active {
+    background: linear-gradient(145deg, #6b1f0f, #892A13, #b8432a);
+}
+
+.soundboard-minimize:active {
+    background: linear-gradient(145deg, #a55641, #CC6D55, #e5886f);
+}
+
+.soundboard-maximize:active {
+    background: linear-gradient(145deg, #9e351c, #C54424, #dc6541);
 }
 
 .soundboard-brand {
@@ -1402,12 +1455,12 @@ body::before {
 .sound-button {
     aspect-ratio: 1;
     border: none;
-    border-radius: 16px;
+    border-radius: 12px;
     background: linear-gradient(145deg, 
-        rgba(255, 255, 255, 0.95) 0%,
-        var(--light-cream) 30%,
-        var(--cream) 70%,
-        rgba(184, 179, 173, 0.3) 100%);
+        #f2f1ef 0%,
+        #eeecea 30%,
+        #e8e6e3 70%,
+        #ddd9d5 100%);
     cursor: pointer;
     transition: all 0.15s ease-out;
     display: flex;
@@ -1420,35 +1473,45 @@ body::before {
     text-align: center;
     padding: 0.75rem;
     box-shadow: 
-        4px 4px 12px rgba(45, 42, 37, 0.2),
-        -2px -2px 8px rgba(255, 255, 255, 0.6),
-        inset 0 2px 4px rgba(255, 255, 255, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+        inset 1px 0 0 rgba(255, 255, 255, 0.5),
+        inset -1px 0 0 rgba(0, 0, 0, 0.08),
+        0 2px 4px rgba(0, 0, 0, 0.15),
+        0 1px 2px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    position: relative;
 }
 
 .sound-button:hover {
     background: linear-gradient(145deg, 
-        rgba(255, 255, 255, 0.98) 0%,
-        var(--cream) 30%,
-        var(--warm-cream) 70%,
-        rgba(184, 179, 173, 0.35) 100%);
+        #f5f4f2 0%,
+        #f0efec 30%,
+        #ebe9e6 70%,
+        #e2dfd9 100%);
     box-shadow: 
-        5px 5px 15px rgba(45, 42, 37, 0.25),
-        -3px -3px 10px rgba(255, 255, 255, 0.7),
-        inset 0 3px 6px rgba(255, 255, 255, 0.5);
-    transform: translateY(-1px);
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+        inset 1px 0 0 rgba(255, 255, 255, 0.6),
+        inset -1px 0 0 rgba(0, 0, 0, 0.1),
+        0 3px 6px rgba(0, 0, 0, 0.18),
+        0 2px 3px rgba(0, 0, 0, 0.12);
+    transform: translateY(-0.5px);
 }
 
 .sound-button:active {
     background: linear-gradient(145deg, 
-        rgba(184, 179, 173, 0.2) 0%,
-        var(--cream) 30%,
-        var(--warm-cream) 70%,
-        rgba(255, 255, 255, 0.9) 100%);
-    transform: translateY(2px);
+        #ddd9d5 0%,
+        #e2dfd9 30%,
+        #e8e6e3 70%,
+        #eeecea 100%);
+    transform: translateY(1px);
     box-shadow: 
-        inset 3px 3px 8px rgba(45, 42, 37, 0.3),
-        inset -2px -2px 6px rgba(255, 255, 255, 0.4);
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 1px 2px rgba(0, 0, 0, 0.15),
+        inset 2px 0 4px rgba(0, 0, 0, 0.1),
+        inset -2px 0 4px rgba(0, 0, 0, 0.1),
+        0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .sound-button .icon {
@@ -1479,152 +1542,479 @@ body::before {
     position: absolute;
     width: 480px;
     height: 320px;
-    background: 
-        var(--noise-texture),
-        linear-gradient(145deg,
-            rgba(250, 245, 240, 0.95) 0%,
-            var(--warm-cream) 25%,
-            var(--cream) 75%,
-            rgba(245, 237, 228, 0.95) 100%
-        );
-    border: 1px solid rgba(184, 179, 173, 0.4);
-    border-radius: var(--radius-md);
-    box-shadow: 
-        0 8px 24px rgba(45, 42, 37, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.4),
-        inset 0 -1px 0 rgba(184, 179, 173, 0.2);
+    border: none;
+    border-radius: 28px;
+    background: transparent;
     animation: windowAppear 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity: 0;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#welcome-window {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: none; /* Hidden initially */
+}
+
+#welcome-window .app-window-content p {
+    margin-bottom: 2rem;
 }
 
 @keyframes windowAppear {
     from {
         opacity: 0;
-        transform: scale(0.95) translateY(20px);
+        transform: translate(-50%, -50%) scale(0.8);
     }
     to {
         opacity: 1;
-        transform: scale(1) translateY(0);
+        transform: translate(-50%, -50%) scale(1);
     }
 }
 
+.window.show {
+    opacity: 1;
+}
+
 .window-header {
-    height: 44px;
-    display: flex;
-    align-items: center;
-    padding: 0 var(--space-lg);
-    background: 
-        linear-gradient(to bottom,
-            rgba(255, 255, 255, 0.9) 0%,
-            rgba(253, 246, 240, 0.8) 100%
-        );
-    border-bottom: 1px solid rgba(255, 107, 53, 0.1);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    position: relative;
+    display: none; /* Hide old window headers in favor of new app-window-header */
 }
 
 .window-controls {
-    display: flex;
-    gap: 6px;
+    display: none; /* Hide old window controls in favor of new app-control-btn */
 }
 
+/* Hide minimize and maximize buttons in soundboard window */
+.soundboard-window .control-btn.minimize,
+.soundboard-window .control-btn.maximize {
+    display: none;
+}
+
+/* Adjust window header for larger button */
+.soundboard-window .window-header {
+    padding: 8px 16px;
+}
+
+/* Sophisticated Multi-Layer Close Button - Based on Figma Design Reference */
+/* Sophisticated close button matching Figma design */
 .control-btn {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 1px solid;
+    width: 64px;
+    height: 64px;
+    border-radius: 20px;
+    border: none;
     cursor: pointer;
-    transition: all 0.12s ease-out;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     position: relative;
-    margin-right: 8px;
-}
-
-.control-btn.close {
+    margin-right: 0;
+    padding: 0;
     background: 
-        radial-gradient(circle at 30% 30%, 
-            rgba(255, 255, 255, 0.8) 0%,
-            #ff5f57 45%,
-            #d12c1f 100%
-        );
-    border-color: rgba(255, 255, 255, 0.6) rgba(150, 30, 20, 0.8) rgba(150, 30, 20, 0.9) rgba(255, 255, 255, 0.4);
+        linear-gradient(145deg, #f4f2f0 0%, #e6e0d8 25%, #d0c6ba 50%, #b8aa9c 75%, #9d8d7f 100%);
     box-shadow: 
-        0 3px 6px rgba(209, 44, 31, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.7),
-        inset 0 -1px 0 rgba(150, 30, 20, 0.6);
+        0 8px 24px rgba(0, 0, 0, 0.25),
+        0 4px 12px rgba(0, 0, 0, 0.15),
+        inset 0 2px 4px rgba(255, 255, 255, 0.4),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.control-btn.minimize {
+/* Remove the old pseudo-elements that were causing conflicts */
+.control-btn.close::before {
+    display: none;
+}
+
+.control-btn.close::after {
+    display: none;
+}
+
+/* Recessed middle layer */
+.control-btn.close .center-button {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
     background: 
-        radial-gradient(circle at 30% 30%, 
-            rgba(255, 255, 255, 0.8) 0%,
-            #ffbd2e 45%,
-            #e6a000 100%
-        );
-    border-color: rgba(255, 255, 255, 0.6) rgba(200, 140, 0, 0.8) rgba(200, 140, 0, 0.9) rgba(255, 255, 255, 0.4);
+        linear-gradient(145deg, #f8f6f4 0%, #ece8e2 25%, #ddd5cb 50%, #ccc0b2 75%, #b8a898 100%);
+    border: 2px solid #3a332b;
     box-shadow: 
-        0 3px 6px rgba(230, 160, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.7),
-        inset 0 -1px 0 rgba(200, 140, 0, 0.6);
+        inset 0 4px 8px rgba(0, 0, 0, 0.2),
+        inset 0 -2px 4px rgba(255, 255, 255, 0.4),
+        0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    pointer-events: none;
 }
 
-.control-btn.maximize {
+.control-btn.close .center-button::before {
+    display: none;
+}
+
+/* Inner orange/red button */
+.control-btn.close .center-button::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     background: 
-        radial-gradient(circle at 30% 30%, 
-            rgba(255, 255, 255, 0.8) 0%,
-            #28ca42 45%,
-            #1a8c2a 100%
-        );
-    border-color: rgba(255, 255, 255, 0.6) rgba(26, 140, 42, 0.8) rgba(26, 140, 42, 0.9) rgba(255, 255, 255, 0.4);
+        linear-gradient(145deg, #b8432a 0%, #892A13 25%, #6b1f0f 50%, #5a1a0c 75%, #4a150a 100%);
     box-shadow: 
-        0 3px 6px rgba(26, 140, 42, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.7),
-        inset 0 -1px 0 rgba(26, 140, 42, 0.6);
+        0 3px 6px rgba(0, 0, 0, 0.2),
+        inset 0 1px 2px rgba(255, 255, 255, 0.3),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
 }
 
-.control-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 
-        0 4px 8px rgba(45, 42, 37, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.8),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+.control-btn.close .center-button .texture-lines {
+    display: none;
 }
 
-.control-btn:active {
-    transform: translateY(1px);
+/* Hover State Enhancements */
+.control-btn.close:hover::before {
+    background: linear-gradient(
+        145deg,
+        rgba(70, 70, 70, 0.35) 0%,
+        rgba(50, 50, 50, 0.45) 30%,
+        rgba(30, 30, 30, 0.55) 70%,
+        rgba(10, 10, 10, 0.65) 100%
+    );
     box-shadow: 
-        0 1px 2px rgba(45, 42, 37, 0.4) inset,
-        inset 0 -1px 0 rgba(255, 255, 255, 0.4),
-        inset 0 1px 0 rgba(0, 0, 0, 0.4);
+        0 12px 32px rgba(0, 0, 0, 0.5),
+        0 6px 16px rgba(0, 0, 0, 0.4),
+        0 3px 8px rgba(0, 0, 0, 0.3);
 }
 
+.control-btn.close:hover::after {
+    background: linear-gradient(
+        145deg,
+        rgba(190, 180, 170, 0.98) 0%,
+        rgba(170, 160, 150, 0.95) 15%,
+        rgba(130, 120, 110, 0.9) 35%,
+        rgba(90, 80, 70, 0.95) 65%,
+        rgba(150, 140, 130, 0.9) 85%,
+        rgba(210, 200, 190, 0.95) 100%
+    );
+    box-shadow: 
+        0 8px 20px rgba(0, 0, 0, 0.35),
+        inset 0 3px 6px rgba(255, 255, 255, 0.5),
+        inset 0 -3px 6px rgba(0, 0, 0, 0.25),
+        inset 3px 0 4px rgba(255, 255, 255, 0.4),
+        inset -3px 0 4px rgba(0, 0, 0, 0.2);
+}
+
+.control-btn.close:hover .center-button {
+    background: linear-gradient(
+        145deg,
+        rgba(255, 253, 250, 1) 0%,
+        rgba(248, 243, 238, 0.98) 20%,
+        rgba(228, 223, 218, 0.95) 50%,
+        rgba(208, 203, 198, 0.9) 80%,
+        rgba(243, 238, 233, 0.95) 100%
+    );
+    box-shadow: 
+        inset 0 4px 10px rgba(0, 0, 0, 0.2),
+        inset 0 -2px 6px rgba(255, 255, 255, 0.7),
+        inset 4px 0 8px rgba(0, 0, 0, 0.15),
+        inset -4px 0 8px rgba(255, 255, 255, 0.4);
+}
+
+.control-btn.close:hover .center-button::after {
+    background: linear-gradient(
+        145deg,
+        rgba(255, 150, 110, 0.98) 0%,
+        rgba(245, 125, 85, 0.95) 20%,
+        rgba(225, 105, 65, 0.9) 40%,
+        rgba(205, 85, 55, 0.95) 60%,
+        rgba(185, 70, 45, 0.9) 80%,
+        rgba(230, 110, 70, 0.95) 100%
+    );
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.4),
+        0 2px 6px rgba(140, 50, 30, 0.5),
+        inset 0 3px 6px rgba(255, 190, 150, 0.7),
+        inset 0 -2px 4px rgba(130, 45, 30, 0.6),
+        inset 3px 0 4px rgba(255, 170, 130, 0.5),
+        inset -3px 0 4px rgba(150, 55, 35, 0.4);
+    transform: scale(1.05);
+}
+
+/* Active State */
 .control-btn.close:active {
-    background: 
-        radial-gradient(circle at 70% 70%, 
-            rgba(150, 30, 20, 0.6) 0%,
-            #ff5f57 45%,
-            rgba(255, 255, 255, 0.6) 100%
-        );
-    border-color: rgba(150, 30, 20, 0.9) rgba(255, 255, 255, 0.4) rgba(255, 255, 255, 0.6) rgba(150, 30, 20, 0.8);
+    transform: scale(0.96);
 }
 
-.control-btn.minimize:active {
-    background: 
-        radial-gradient(circle at 70% 70%, 
-            rgba(200, 140, 0, 0.6) 0%,
-            #ffbd2e 45%,
-            rgba(255, 255, 255, 0.6) 100%
-        );
-    border-color: rgba(200, 140, 0, 0.9) rgba(255, 255, 255, 0.4) rgba(255, 255, 255, 0.6) rgba(200, 140, 0, 0.8);
+.control-btn.close:active::before {
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.6),
+        0 2px 6px rgba(0, 0, 0, 0.5);
 }
 
-.control-btn.maximize:active {
-    background: 
-        radial-gradient(circle at 70% 70%, 
-            rgba(26, 140, 42, 0.6) 0%,
-            #28ca42 45%,
-            rgba(255, 255, 255, 0.6) 100%
-        );
-    border-color: rgba(26, 140, 42, 0.9) rgba(255, 255, 255, 0.4) rgba(255, 255, 255, 0.6) rgba(26, 140, 42, 0.8);
+.control-btn.close:active::after {
+    box-shadow: 
+        0 3px 8px rgba(0, 0, 0, 0.4),
+        inset 0 4px 8px rgba(0, 0, 0, 0.3),
+        inset 0 -2px 4px rgba(255, 255, 255, 0.4),
+        inset 3px 0 6px rgba(0, 0, 0, 0.25),
+        inset -3px 0 6px rgba(255, 255, 255, 0.2);
 }
+
+.control-btn.close:active .center-button::after {
+    transform: scale(0.9);
+    box-shadow: 
+        inset 0 4px 8px rgba(0, 0, 0, 0.5),
+        inset 0 -1px 3px rgba(255, 255, 255, 0.3),
+        inset 3px 0 6px rgba(0, 0, 0, 0.4),
+        inset -3px 0 6px rgba(255, 255, 255, 0.2);
+}
+
+/* Minimize button styles */
+.control-btn.minimize .center-button {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: 
+        linear-gradient(145deg, #f8f6f4 0%, #ece8e2 25%, #ddd5cb 50%, #ccc0b2 75%, #b8a898 100%);
+    border: 2px solid #3a332b;
+    box-shadow: 
+        inset 0 4px 8px rgba(0, 0, 0, 0.2),
+        inset 0 -2px 4px rgba(255, 255, 255, 0.4),
+        0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.control-btn.minimize .center-button::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: 
+        linear-gradient(145deg, #e5886f 0%, #CC6D55 25%, #a55641 50%, #944c37 75%, #83422d 100%);
+    box-shadow: 
+        0 3px 6px rgba(0, 0, 0, 0.2),
+        inset 0 1px 2px rgba(255, 255, 255, 0.3),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+/* Maximize button styles */
+.control-btn.maximize .center-button {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: 
+        linear-gradient(145deg, #f8f6f4 0%, #ece8e2 25%, #ddd5cb 50%, #ccc0b2 75%, #b8a898 100%);
+    border: 2px solid #3a332b;
+    box-shadow: 
+        inset 0 4px 8px rgba(0, 0, 0, 0.2),
+        inset 0 -2px 4px rgba(255, 255, 255, 0.4),
+        0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.control-btn.maximize .center-button::after {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: 
+        linear-gradient(145deg, #dc6541 0%, #C54424 25%, #9e351c 50%, #8d2e18 75%, #7c2614 100%);
+    box-shadow: 
+        0 3px 6px rgba(0, 0, 0, 0.2),
+        inset 0 1px 2px rgba(255, 255, 255, 0.3),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+/* Reusable App Window Components */
+.app-window-container {
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(ellipse at top left, #faf9f7 0%, transparent 50%),
+        radial-gradient(ellipse at top right, #f5f4f2 0%, transparent 50%),
+        radial-gradient(ellipse at bottom left, #f0efec 0%, transparent 50%),
+        radial-gradient(ellipse at bottom right, #ebe9e6 0%, transparent 50%),
+        linear-gradient(135deg, #eeecea 0%, #e6e4e1 25%, #e0ddd9 50%, #dbd8d4 75%, #d6d2ce 100%);
+    border-radius: 28px;
+    padding: 0;
+    box-shadow: 
+        0 0 0 1px rgba(0, 0, 0, 0.1),
+        0 2px 4px rgba(0, 0, 0, 0.15),
+        0 8px 24px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+    border: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.app-window-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    gap: 8px;
+    background: 
+        linear-gradient(135deg, 
+            rgba(255, 255, 255, 0.4) 0%, 
+            rgba(238, 236, 234, 0.2) 100%);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.app-brand {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--warm-gray);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+.app-window-content {
+    flex: 1;
+    padding: 20px;
+    overflow: auto;
+    background: transparent;
+}
+
+.drag-grip {
+    margin-left: 8px;
+    color: var(--warm-gray);
+    opacity: 0.3;
+    font-size: 14px;
+    letter-spacing: -2px;
+    user-select: none;
+    cursor: grab;
+}
+
+.drag-grip:active {
+    cursor: grabbing;
+}
+
+/* MP3 Player Styles (using reusable components) */
+.mp3-player-standalone {
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(ellipse at top left, #faf9f7 0%, transparent 50%),
+        radial-gradient(ellipse at top right, #f5f4f2 0%, transparent 50%),
+        radial-gradient(ellipse at bottom left, #f0efec 0%, transparent 50%),
+        radial-gradient(ellipse at bottom right, #ebe9e6 0%, transparent 50%),
+        linear-gradient(135deg, #eeecea 0%, #e6e4e1 25%, #e0ddd9 50%, #dbd8d4 75%, #d6d2ce 100%);
+    border-radius: 28px;
+    padding: 0;
+    box-shadow: 
+        0 0 0 1px rgba(0, 0, 0, 0.1),
+        0 2px 4px rgba(0, 0, 0, 0.15),
+        0 8px 24px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+    border: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* MP3 Window Controls - Now using app-window-header */
+
+/* Reusable App Window Control Buttons */
+.app-control-btn {
+    width: 14px;
+    height: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    position: relative;
+    /* Perfect squircle shape matching Figma design */
+    border-radius: 35%;
+    /* Enhanced skeuomorphic shadows */
+    box-shadow: 
+        0 0 0 0.5px rgba(0, 0, 0, 0.15),
+        0 1px 2px rgba(0, 0, 0, 0.2),
+        0 2px 4px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+        inset 1px 0 0 rgba(255, 255, 255, 0.3),
+        inset -1px 0 0 rgba(0, 0, 0, 0.05);
+}
+
+.app-control-btn.close {
+    background: 
+        radial-gradient(ellipse at 30% 30%, #d4967a 0%, transparent 70%),
+        radial-gradient(ellipse at 70% 70%, #5a1a0c 0%, transparent 70%),
+        linear-gradient(145deg, #b8432a 0%, #892A13 50%, #6b1f0f 100%);
+}
+
+.app-control-btn.minimize {
+    background: 
+        radial-gradient(ellipse at 30% 30%, #f2a085 0%, transparent 70%),
+        radial-gradient(ellipse at 70% 70%, #83422d 0%, transparent 70%),
+        linear-gradient(145deg, #e5886f 0%, #CC6D55 50%, #a55641 100%);
+}
+
+.app-control-btn.maximize {
+    background: 
+        radial-gradient(ellipse at 30% 30%, #e87a58 0%, transparent 70%),
+        radial-gradient(ellipse at 70% 70%, #7c2614 0%, transparent 70%),
+        linear-gradient(145deg, #dc6541 0%, #C54424 50%, #9e351c 100%);
+}
+
+.app-control-btn:hover {
+    transform: translateY(-0.5px);
+    box-shadow: 
+        0 0 0 0.5px rgba(0, 0, 0, 0.2),
+        0 2px 4px rgba(0, 0, 0, 0.25),
+        0 4px 8px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+        inset 1px 0 0 rgba(255, 255, 255, 0.4),
+        inset -1px 0 0 rgba(0, 0, 0, 0.06);
+}
+
+.app-control-btn:active {
+    transform: translateY(0.5px);
+    box-shadow: 
+        0 0 0 0.5px rgba(0, 0, 0, 0.25),
+        inset 0 2px 3px rgba(0, 0, 0, 0.4),
+        inset 0 1px 2px rgba(0, 0, 0, 0.3),
+        inset 2px 0 3px rgba(0, 0, 0, 0.2),
+        inset -2px 0 3px rgba(0, 0, 0, 0.2),
+        inset 0 -1px 1px rgba(255, 255, 255, 0.2);
+}
+
+/* MP3 Player Control Buttons - Now using app-control-btn */
+
+/* Generic hover/active states for other control buttons (not used in soundboard) */
+.control-btn:not(.close):hover {
+    opacity: 0.8;
+}
+
+.control-btn:not(.close):active {
+    opacity: 0.6;
+}
+
+
 
 .window-title {
     position: absolute;
@@ -1848,22 +2238,28 @@ body::before {
 
 /* Physical Volume Knob Control */
 .volume-knob {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: 
-        radial-gradient(circle at 30% 30%,
-            rgba(255, 255, 255, 0.9) 0%,
-            var(--platinum) 30%,
-            var(--platinum-dark) 70%,
-            rgba(138, 121, 104, 0.8) 100%
+        radial-gradient(circle at 35% 35%,
+            #ffffff 0%,
+            #f8f7f5 15%,
+            #eeecea 30%,
+            #e5e3e0 50%,
+            #d8d5d1 70%,
+            #c7c3be 85%,
+            #b5b0aa 100%
         );
-    border: 2px solid;
-    border-color: rgba(255, 255, 255, 0.8) rgba(138, 121, 104, 0.6) rgba(138, 121, 104, 0.8) rgba(255, 255, 255, 0.6);
+    border: none;
     box-shadow: 
-        0 3px 6px rgba(45, 42, 37, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9),
-        inset 0 -1px 0 rgba(138, 121, 104, 0.6);
+        0 0 0 1px rgba(0, 0, 0, 0.15),
+        0 1px 0 rgba(255, 255, 255, 0.9),
+        0 4px 8px rgba(0, 0, 0, 0.25),
+        0 2px 4px rgba(0, 0, 0, 0.15),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.8),
+        inset 0 1px 2px rgba(255, 255, 255, 0.9),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.1);
     cursor: pointer;
     position: relative;
     transition: all 0.15s ease-out;
@@ -1872,33 +2268,58 @@ body::before {
 .volume-knob::before {
     content: "";
     position: absolute;
-    top: 2px;
+    top: 3px;
     left: 50%;
     transform: translateX(-50%);
-    width: 2px;
-    height: 8px;
-    background: rgba(138, 121, 104, 0.9);
-    border-radius: 1px;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    width: 2.5px;
+    height: 9px;
+    background: linear-gradient(180deg, #666 0%, #333 100%);
+    border-radius: 1.5px;
+    box-shadow: 
+        0 0 0 0.5px rgba(255, 255, 255, 0.6),
+        0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .volume-knob:hover {
     background: 
-        radial-gradient(circle at 30% 30%,
-            rgba(255, 255, 255, 1) 0%,
-            var(--platinum-light) 30%,
-            var(--platinum) 70%,
-            rgba(138, 121, 104, 0.7) 100%
+        radial-gradient(circle at 35% 35%,
+            #ffffff 0%,
+            #fafaf9 15%,
+            #f0efec 30%,
+            #e7e5e2 50%,
+            #dbd8d4 70%,
+            #cac6c1 85%,
+            #b8b3ad 100%
         );
-    transform: translateY(-1px);
+    box-shadow: 
+        0 0 0 1px rgba(0, 0, 0, 0.15),
+        0 1px 0 rgba(255, 255, 255, 0.95),
+        0 5px 10px rgba(0, 0, 0, 0.3),
+        0 3px 6px rgba(0, 0, 0, 0.2),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.9),
+        inset 0 1px 3px rgba(255, 255, 255, 0.95),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.08);
+    transform: translateY(-0.5px);
 }
 
 .volume-knob:active {
+    background: 
+        radial-gradient(circle at 35% 35%,
+            #e8e6e3 0%,
+            #e0ddd9 15%,
+            #d8d5d1 30%,
+            #d0ccc7 50%,
+            #c5c1bb 70%,
+            #b7b2ac 85%,
+            #a8a39d 100%
+        );
     transform: translateY(1px);
     box-shadow: 
-        0 1px 3px rgba(45, 42, 37, 0.4),
-        inset 0 -1px 0 rgba(255, 255, 255, 0.6),
-        inset 0 1px 0 rgba(138, 121, 104, 0.7);
+        0 0 0 1px rgba(0, 0, 0, 0.2),
+        0 1px 2px rgba(0, 0, 0, 0.3),
+        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+        inset 0 1px 2px rgba(0, 0, 0, 0.15),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.5);
 }
 
 /* Physical Toggle Switch */
@@ -1961,3 +2382,612 @@ body::before {
         inset 0 -1px 0 rgba(255, 255, 255, 0.6),
         inset 0 1px 0 rgba(138, 121, 104, 0.4);
 }
+
+/* ===== EQUALIZER STYLES ===== */
+
+.eq-content {
+    background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+    background-image: 
+        radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        var(--noise-texture);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 
+        inset 0 2px 8px rgba(0, 0, 0, 0.6),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+    margin: 0;
+    height: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.eq-display {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(145deg, #0a0a0a, #1a1a1a);
+    border: 2px inset #333;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    box-shadow: 
+        inset 0 2px 4px rgba(0, 0, 0, 0.8),
+        0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.eq-brand {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: bold;
+    color: #00ff00;
+    text-shadow: 0 0 8px #00ff00;
+    letter-spacing: 2px;
+}
+
+.eq-led-indicator {
+    width: 12px;
+    height: 12px;
+    background: radial-gradient(circle, #ff4444, #cc0000);
+    border-radius: 50%;
+    box-shadow: 
+        0 0 8px #ff4444,
+        inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.eq-bands {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 12px;
+    margin: 20px 0;
+    padding: 20px 10px;
+    background: linear-gradient(145deg, #333, #222);
+    border-radius: 8px;
+    border: 1px inset #444;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.eq-band {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+}
+
+.freq-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: #ccc;
+    font-weight: bold;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    margin-bottom: 4px;
+}
+
+.eq-slider-container {
+    position: relative;
+    width: 24px;
+    height: 180px;
+    background: linear-gradient(0deg, #1a1a1a, #2a2a2a);
+    border: 2px inset #333;
+    border-radius: 12px;
+    box-shadow: 
+        inset 0 2px 6px rgba(0, 0, 0, 0.8),
+        0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.eq-slider {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+    transform-origin: center;
+    width: 180px;
+    height: 20px;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.eq-slider-track {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 164px;
+    background: linear-gradient(0deg, #ff6b35, #ffb899, #ff6b35);
+    border-radius: 2px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.eq-slider-handle {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 16px;
+    background: linear-gradient(145deg, #e0e0e0, #b0b0b0);
+    border: 1px solid #888;
+    border-radius: 4px;
+    cursor: grab;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+    transition: all 0.1s ease;
+    top: 82px; /* Center position */
+}
+
+.eq-slider:active + .eq-slider-track + .eq-slider-handle {
+    cursor: grabbing;
+    transform: translateX(-50%) scale(1.05);
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.freq-value {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: #00ff00;
+    text-shadow: 0 0 4px #00ff00;
+    font-weight: bold;
+    margin-top: 8px;
+    min-width: 32px;
+    text-align: center;
+}
+
+.eq-controls {
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin: 20px 0;
+    padding: 15px;
+    background: linear-gradient(145deg, #2a2a2a, #1a1a1a);
+    border-radius: 8px;
+    border: 1px inset #333;
+}
+
+.eq-control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.eq-control-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: #ccc;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.effect-slider {
+    width: 60px;
+    height: 4px;
+    background: linear-gradient(90deg, #333, #555);
+    border-radius: 2px;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.effect-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(145deg, #e0e0e0, #b0b0b0);
+    border: 1px solid #888;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 
+        0 1px 3px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.eq-control-value {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: #00ff00;
+    text-shadow: 0 0 4px #00ff00;
+    min-width: 28px;
+    text-align: center;
+}
+
+.eq-presets {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.eq-preset-btn {
+    flex: 1;
+    padding: 8px 12px;
+    background: linear-gradient(145deg, #333, #222);
+    border: 1px solid #444;
+    border-radius: 6px;
+    color: #ccc;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 
+        0 2px 4px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.eq-preset-btn:hover {
+    background: linear-gradient(145deg, #444, #333);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 
+        0 3px 6px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.eq-preset-btn.active {
+    background: linear-gradient(145deg, #ff6b35, #e55a2b);
+    color: white;
+    border-color: #ff6b35;
+    box-shadow: 
+        0 0 8px rgba(255, 107, 53, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.eq-preset-btn:active {
+    transform: translateY(1px);
+    box-shadow: 
+        0 1px 2px rgba(0, 0, 0, 0.4),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* ===== TERMINAL WINDOW STYLES ===== */
+
+.terminal-window {
+    width: 600px;
+    height: 400px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    box-shadow: 
+        0 20px 40px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    animation: terminalAppear 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes terminalAppear {
+    0% {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.terminal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 36px;
+    padding: 0 16px;
+    background: rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.terminal-controls {
+    display: flex;
+    gap: 8px;
+}
+
+.terminal-control {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.terminal-control.close {
+    background: linear-gradient(145deg, #ff5f56, #ff3b30);
+}
+
+.terminal-control.minimize {
+    background: linear-gradient(145deg, #ffbd2e, #ff9500);
+}
+
+.terminal-control.maximize {
+    background: linear-gradient(145deg, #27ca3f, #28cd41);
+}
+
+.terminal-title {
+    font-family: var(--font-pixel);
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 0.5px;
+}
+
+.terminal-content {
+    padding: 0;
+    height: calc(100% - 36px);
+    background: rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.terminal-output {
+    font-family: var(--font-pixel);
+    font-size: 14px;
+    line-height: 1.4;
+    color: white;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px 10px 40px 10px;
+    box-sizing: border-box;
+}
+
+.terminal-cursor {
+    font-family: var(--font-pixel);
+    font-size: 14px;
+    color: white;
+    animation: cursorBlink 1s infinite;
+    display: inline;
+}
+
+@keyframes cursorBlink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* ===== DESKTOP TIME DISPLAY ===== */
+
+.desktop-time-display {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 100;
+    text-align: right;
+    background: rgba(255, 255, 255, 0.4);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    padding: 12px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 
+        0 4px 16px rgba(45, 42, 37, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.desktop-date {
+    font-family: var(--font-pixel);
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--warm-gray);
+    margin-bottom: 2px;
+    text-shadow: 0 1px 2px rgba(45, 42, 37, 0.3);
+}
+
+.desktop-time {
+    font-family: var(--font-pixel);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--primary-orange);
+    text-shadow: 0 1px 2px rgba(45, 42, 37, 0.3);
+    letter-spacing: 1px;
+}
+
+/* ===== TASK CHECKLIST STYLES ===== */
+
+.task-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.task-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(245, 237, 228, 0.9));
+    border: 2px solid;
+    border-color: rgba(184, 179, 173, 0.4) rgba(255, 255, 255, 0.6) rgba(255, 255, 255, 0.8) rgba(184, 179, 173, 0.6);
+    border-radius: 12px;
+    box-shadow: 
+        0 2px 8px rgba(45, 42, 37, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        inset 0 -1px 0 rgba(184, 179, 173, 0.3);
+    transition: all 0.3s ease;
+}
+
+.task-item:hover {
+    transform: translateY(-1px);
+    box-shadow: 
+        0 4px 12px rgba(45, 42, 37, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        inset 0 -1px 0 rgba(184, 179, 173, 0.4);
+}
+
+.task-item.completed {
+    background: linear-gradient(145deg, rgba(255, 235, 220, 0.95), rgba(255, 184, 153, 0.8));
+    border-color: rgba(255, 107, 53, 0.4) rgba(255, 255, 255, 0.6) rgba(255, 255, 255, 0.8) rgba(255, 107, 53, 0.6);
+}
+
+.task-checkbox {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(240, 235, 230, 0.8));
+    border: 2px solid;
+    border-color: rgba(138, 121, 104, 0.6) rgba(255, 255, 255, 0.4) rgba(255, 255, 255, 0.6) rgba(138, 121, 104, 0.4);
+    border-radius: 6px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 
+        inset 0 2px 4px rgba(45, 42, 37, 0.15),
+        0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.task-checkbox:hover {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(250, 245, 240, 0.9));
+    border-color: rgba(255, 107, 53, 0.4) rgba(255, 255, 255, 0.6) rgba(255, 255, 255, 0.8) rgba(255, 107, 53, 0.6);
+}
+
+.checkbox-mark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    width: 12px;
+    height: 8px;
+    border: 2px solid var(--primary-orange);
+    border-top: none;
+    border-right: none;
+    transform-origin: center;
+    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity: 0;
+}
+
+.task-item.completed .checkbox-mark {
+    transform: translate(-50%, -60%) rotate(-45deg) scale(1);
+    opacity: 1;
+}
+
+.task-item.completed .task-checkbox {
+    background: linear-gradient(145deg, rgba(255, 200, 150, 0.9), rgba(255, 107, 53, 0.7));
+    border-color: rgba(255, 107, 53, 0.8) rgba(255, 255, 255, 0.4) rgba(255, 255, 255, 0.6) rgba(255, 107, 53, 0.4);
+    box-shadow: 
+        inset 0 2px 4px rgba(255, 107, 53, 0.3),
+        0 0 8px rgba(255, 107, 53, 0.2);
+}
+
+.task-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.task-title {
+    font-family: var(--font-system);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--charcoal);
+    line-height: 1.3;
+}
+
+.task-description {
+    font-family: var(--font-system);
+    font-size: 13px;
+    color: var(--warm-gray);
+    line-height: 1.4;
+    opacity: 0.85;
+}
+
+.task-item.completed .task-title {
+    color: var(--primary-orange);
+}
+
+.task-item.completed .task-description {
+    color: rgba(255, 107, 53, 0.7);
+}
+
+/* ===== ACHIEVEMENT POPUP STYLES ===== */
+
+.achievement-popup {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 280px;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 235, 220, 0.9));
+    border: 2px solid;
+    border-color: rgba(255, 107, 53, 0.4) rgba(255, 255, 255, 0.6) rgba(255, 255, 255, 0.8) rgba(255, 107, 53, 0.6);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 
+        0 8px 32px rgba(45, 42, 37, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        inset 0 -1px 0 rgba(255, 107, 53, 0.2);
+    transform: translateX(320px);
+    transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+    z-index: 10000;
+    cursor: pointer;
+}
+
+.achievement-popup.show {
+    transform: translateX(0);
+}
+
+.achievement-popup.hide {
+    transform: translateX(320px);
+    opacity: 0;
+}
+
+.achievement-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.achievement-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(145deg, var(--primary-orange), var(--soft-orange));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: 
+        0 2px 8px rgba(255, 107, 53, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.achievement-title {
+    font-family: var(--font-system);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-orange);
+    margin: 0;
+}
+
+.achievement-subtitle {
+    font-family: var(--font-system);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--warm-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0;
+}
+
+.achievement-description {
+    font-family: var(--font-system);
+    font-size: 13px;
+    color: var(--charcoal);
+    line-height: 1.4;
+    margin: 0;
+}
+

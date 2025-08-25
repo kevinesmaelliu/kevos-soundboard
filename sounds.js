@@ -43,6 +43,9 @@ class RetroSounds {
         
         // Simple knob click
         this.sounds.set('knobClick', this.createKnobClick());
+        
+        // Achievement sound
+        this.sounds.set('achievement', this.createAchievementSound());
     }
     
     createStartupChime() {
@@ -100,6 +103,39 @@ class RetroSounds {
             
             oscillator.start(now);
             oscillator.stop(now + duration);
+        };
+    }
+    
+    createAchievementSound() {
+        return () => {
+            const duration = 0.8;
+            const now = this.audioContext.currentTime;
+            
+            // Create a triumphant chord progression
+            const frequencies = [
+                { freq: 523.25, start: 0, duration: 0.3 },      // C5
+                { freq: 659.25, start: 0.1, duration: 0.3 },    // E5
+                { freq: 783.99, start: 0.2, duration: 0.4 },    // G5
+                { freq: 1046.5, start: 0.3, duration: 0.5 }     // C6
+            ];
+            
+            frequencies.forEach(note => {
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(note.freq, now + note.start);
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0, now + note.start);
+                gainNode.gain.linearRampToValueAtTime(0.08, now + note.start + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + note.start + note.duration);
+                
+                oscillator.start(now + note.start);
+                oscillator.stop(now + note.start + note.duration);
+            });
         };
     }
     

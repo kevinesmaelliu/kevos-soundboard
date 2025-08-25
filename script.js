@@ -80,6 +80,13 @@ class SoftOS {
         this.sounds = new RetroSounds();
         this.keyboardSounds = new KeyboardSoundManager();
         
+        // Task tracking system
+        this.completedTasks = new Set();
+        this.isTypingWhileRadiohead = false;
+        this.radioheadVideoId = 'V_Ydoe4Q-Gg';
+        this.typingCharCount = 0;
+        this.notesTextarea = null;
+        
         this.init();
     }
     
@@ -93,35 +100,365 @@ class SoftOS {
         // Update time every second
         setInterval(() => this.updateTime(), 1000);
         
-        // Set up the start button
-        this.setupStartButton();
+        // Set up the terminal
+        this.setupTerminal();
     }
     
-    setupStartButton() {
-        const startScreen = document.getElementById('kevos-start');
-        const startButton = document.getElementById('start-kevos');
+    setupTerminal() {
+        console.log('🔧 Setting up terminal...');
         
-        if (startButton) {
-            startButton.addEventListener('click', async () => {
-                console.log('🚀 Start button clicked - beginning kevOS launch');
+        const terminalOutput = document.getElementById('terminal-output');
+        if (!terminalOutput) {
+            console.error('❌ Terminal output element not found!');
+            return;
+        }
+        
+        // Terminal startup sequence
+        const bootSequence = [
+            { text: 'kevOS Terminal v1.0.1\n', delay: 100 },
+            { text: 'Copyright (c) 2025 kevs.fyi\n', delay: 50 },
+            { text: 'All systems nominal.\n\n', delay: 100 },
+            { text: '> Detecting audio hardware... [OK]\n', delay: 300 },
+            { text: '> Initializing sound drivers... [OK]\n', delay: 200 },
+            { text: '> Dilly-Dallying... [OK]\n', delay: 400 },
+            { text: '> Injecting crypto miner... [ACTIVE]\n', delay: 1500 },
+            { text: '> Jk. [lol]\n', delay: 500 },
+            { text: '> Checking for signs of intelligent life... [TIMEOUT]\n', delay: 1000 },
+            { text: '> Anomaly "meow" detected... [???]\n', delay: 800 },
+            { text: '  /\\_/\\\n', delay: 100 },
+            { text: '  ( o.o )\n', delay: 100 },
+            { text: '  > ^ <\n\n', delay: 100 },
+            { text: 'System ready.\n', delay: 100 },
+            { text: 'Awaiting user input...\n\n', delay: 200 },
+            { text: '$ ', delay: 500, final: true }
+        ];
+        
+        // Start with initial terminal animation first
+        this.showInitialTerminalText(terminalOutput, bootSequence);
+        
+        // Make terminal draggable
+        this.makeTerminalDraggable();
+    }
+    
+    makeTerminalDraggable() {
+        const terminalWindow = document.querySelector('.terminal-window');
+        const dragHandle = document.querySelector('.terminal-header.drag-handle');
+        
+        if (!terminalWindow || !dragHandle) return;
+        
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+        
+        dragHandle.addEventListener('mousedown', dragStart);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', dragEnd);
+        
+        function dragStart(e) {
+            initialX = e.clientX - xOffset;
+            initialY = e.clientY - yOffset;
+            
+            if (e.target === dragHandle || dragHandle.contains(e.target)) {
+                isDragging = true;
+                dragHandle.style.cursor = 'grabbing';
+            }
+        }
+        
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
                 
-                // Hide start screen
-                if (startScreen) {
-                    startScreen.style.animation = 'launchScreenFadeOut 0.5s ease-in-out forwards';
-                    setTimeout(() => {
-                        startScreen.style.display = 'none';
-                    }, 500);
-                }
+                xOffset = currentX;
+                yOffset = currentY;
                 
-                // Show and start the launch sequence
-                const launchScreen = document.getElementById('kevos-launch');
-                if (launchScreen) {
-                    launchScreen.style.display = 'flex';
-                    setTimeout(() => {
-                        this.startKevOSLaunch();
-                    }, 100);
+                terminalWindow.style.transform = `translate(${currentX}px, ${currentY}px)`;
+            }
+        }
+        
+        function dragEnd() {
+            if (isDragging) {
+                isDragging = false;
+                dragHandle.style.cursor = 'grab';
+            }
+        }
+        
+        // Set initial cursor style
+        dragHandle.style.cursor = 'grab';
+    }
+    
+    showInitialTerminalText(terminalOutput, bootSequence) {
+        let currentStep = 0;
+        let currentText = '';
+        
+        // Make sure cursor is visible
+        const cursor = document.querySelector('.terminal-cursor');
+        if (cursor) {
+            cursor.style.opacity = '1';
+        }
+        
+        const typeStep = () => {
+            if (currentStep >= bootSequence.length) {
+                // After animation completes, show prompt for user input
+                setTimeout(() => {
+                    const finalText = currentText + '\nPress Enter or type "start" to begin...\n$ ';
+                    const cursor = terminalOutput.querySelector('.terminal-cursor');
+                    terminalOutput.innerHTML = finalText;
+                    if (cursor) {
+                        terminalOutput.appendChild(cursor);
+                    }
+                    // Center cursor in viewport
+                    requestAnimationFrame(() => {
+                        const cursor = terminalOutput.querySelector('.terminal-cursor');
+                        if (cursor) {
+                            const cursorRect = cursor.getBoundingClientRect();
+                            const terminalRect = terminalOutput.getBoundingClientRect();
+                            const terminalHeight = terminalOutput.clientHeight;
+                            const scrollOffset = terminalOutput.scrollTop;
+                            
+                            // Calculate cursor position relative to terminal content
+                            const cursorTop = cursorRect.top - terminalRect.top + scrollOffset;
+                            
+                            // Center the cursor by scrolling to cursor position minus half viewport height
+                            const targetScroll = cursorTop - (terminalHeight / 2);
+                            terminalOutput.scrollTop = Math.max(0, targetScroll);
+                        }
+                    });
+                    this.setupUserInput(terminalOutput);
+                }, 500);
+                return;
+            }
+            
+            const step = bootSequence[currentStep];
+            currentText += step.text;
+            const cursor = terminalOutput.querySelector('.terminal-cursor');
+            terminalOutput.innerHTML = currentText;
+            if (cursor) {
+                terminalOutput.appendChild(cursor);
+            }
+            // Center cursor in viewport
+            requestAnimationFrame(() => {
+                const cursor = terminalOutput.querySelector('.terminal-cursor');
+                if (cursor) {
+                    const cursorRect = cursor.getBoundingClientRect();
+                    const terminalRect = terminalOutput.getBoundingClientRect();
+                    const terminalHeight = terminalOutput.clientHeight;
+                    const scrollOffset = terminalOutput.scrollTop;
+                    
+                    // Calculate cursor position relative to terminal content
+                    const cursorTop = cursorRect.top - terminalRect.top + scrollOffset;
+                    
+                    // Center the cursor by scrolling to cursor position minus half viewport height
+                    const targetScroll = cursorTop - (terminalHeight / 2);
+                    terminalOutput.scrollTop = Math.max(0, targetScroll);
                 }
             });
+            
+            currentStep++;
+            setTimeout(typeStep, step.delay);
+        };
+        
+        // Start typing immediately
+        typeStep();
+    }
+    
+    setupUserInput(terminalOutput) {
+        // Store the base terminal content (everything before the input prompt) as text only
+        const baseContent = terminalOutput.textContent;
+        
+        // Handle user input
+        let userInput = '';
+        let awaitingConfirmation = false;
+        
+        const scrollToCursor = () => {
+            // Center the cursor in the terminal viewport
+            requestAnimationFrame(() => {
+                const cursor = terminalOutput.querySelector('.terminal-cursor');
+                if (cursor) {
+                    const cursorRect = cursor.getBoundingClientRect();
+                    const terminalRect = terminalOutput.getBoundingClientRect();
+                    const terminalHeight = terminalOutput.clientHeight;
+                    const scrollOffset = terminalOutput.scrollTop;
+                    
+                    // Calculate cursor position relative to terminal content
+                    const cursorTop = cursorRect.top - terminalRect.top + scrollOffset;
+                    
+                    // Center the cursor by scrolling to cursor position minus half viewport height
+                    const targetScroll = cursorTop - (terminalHeight / 2);
+                    terminalOutput.scrollTop = Math.max(0, targetScroll);
+                }
+            });
+        };
+        
+        const updateDisplay = () => {
+            // Update terminal content with base + current user input + cursor
+            // Use textContent to avoid HTML conflicts, then add cursor as separate element
+            terminalOutput.textContent = baseContent + userInput;
+            const cursor = document.createElement('span');
+            cursor.className = 'terminal-cursor';
+            cursor.textContent = '█';
+            terminalOutput.appendChild(cursor);
+            scrollToCursor();
+        };
+        
+        const handleKeyPress = (event) => {
+            if (event.key === 'Enter') {
+                if (userInput === '' || userInput.toLowerCase() === 'start') {
+                    // Welcome message and transition
+                    terminalOutput.innerHTML = baseContent + userInput + '\nWelcome aboard, guest.\n\n';
+                    // Scroll to show the complete response
+                    requestAnimationFrame(() => {
+                        terminalOutput.scrollTop = terminalOutput.scrollHeight - terminalOutput.clientHeight + 20;
+                    });
+                    setTimeout(() => this.transitionToDesktop(), 1000);
+                    document.removeEventListener('keydown', handleKeyPress);
+                } else {
+                    // Command not recognized
+                    const newBaseContent = baseContent + userInput + '\nCommand not recognized. Did you mean "start"? (y/n): ';
+                    terminalOutput.textContent = newBaseContent;
+                    const cursor = document.createElement('span');
+                    cursor.className = 'terminal-cursor';
+                    cursor.textContent = '█';
+                    terminalOutput.appendChild(cursor);
+                    awaitingConfirmation = true;
+                    userInput = '';
+                    // Update the base content for the confirmation prompt
+                    this.setupConfirmationInput(terminalOutput, newBaseContent);
+                    document.removeEventListener('keydown', handleKeyPress);
+                }
+            } else if (event.key === 'Backspace') {
+                if (userInput.length > 0) {
+                    userInput = userInput.slice(0, -1);
+                    updateDisplay();
+                }
+            } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+                // Regular character (excluding modifier key combinations)
+                userInput += event.key;
+                updateDisplay();
+            }
+        };
+        
+        document.addEventListener('keydown', handleKeyPress);
+    }
+    
+    setupConfirmationInput(terminalOutput, baseContent) {
+        // Handle y/n confirmation input
+        let userInput = '';
+        
+        const scrollToCursor = () => {
+            // Center the cursor in the terminal viewport
+            requestAnimationFrame(() => {
+                const cursor = terminalOutput.querySelector('.terminal-cursor');
+                if (cursor) {
+                    const cursorRect = cursor.getBoundingClientRect();
+                    const terminalRect = terminalOutput.getBoundingClientRect();
+                    const terminalHeight = terminalOutput.clientHeight;
+                    const scrollOffset = terminalOutput.scrollTop;
+                    
+                    // Calculate cursor position relative to terminal content
+                    const cursorTop = cursorRect.top - terminalRect.top + scrollOffset;
+                    
+                    // Center the cursor by scrolling to cursor position minus half viewport height
+                    const targetScroll = cursorTop - (terminalHeight / 2);
+                    terminalOutput.scrollTop = Math.max(0, targetScroll);
+                }
+            });
+        };
+        
+        const updateDisplay = () => {
+            terminalOutput.textContent = baseContent + userInput;
+            const cursor = document.createElement('span');
+            cursor.className = 'terminal-cursor';
+            cursor.textContent = '█';
+            terminalOutput.appendChild(cursor);
+            scrollToCursor();
+        };
+        
+        const handleKeyPress = (event) => {
+            if (event.key === 'Enter') {
+                if (userInput.toLowerCase() === 'y' || userInput.toLowerCase() === 'yes') {
+                    // Show welcome message and transition
+                    terminalOutput.innerHTML = baseContent + userInput + '\nWelcome aboard, guest.\n\n';
+                    // Scroll to show the complete response
+                    requestAnimationFrame(() => {
+                        terminalOutput.scrollTop = terminalOutput.scrollHeight - terminalOutput.clientHeight + 20;
+                    });
+                    setTimeout(() => this.transitionToDesktop(), 1000);
+                    document.removeEventListener('keydown', handleKeyPress);
+                } else if (userInput.toLowerCase() === 'n' || userInput.toLowerCase() === 'no') {
+                    // Show sarcastic "no" response and force start anyway
+                    const noResponse = baseContent + userInput + 
+                        '\nNo? Well too bad.\n' +
+                        'Starting kevOS anyway...\n' +
+                        '> You can\'t escape that easily\n' +
+                        '> Welcome aboard, reluctant user.\n\n';
+                    terminalOutput.innerHTML = noResponse;
+                    // Scroll to show the complete response
+                    requestAnimationFrame(() => {
+                        terminalOutput.scrollTop = terminalOutput.scrollHeight - terminalOutput.clientHeight + 20;
+                    });
+                    setTimeout(() => this.transitionToDesktop(), 3500);
+                    document.removeEventListener('keydown', handleKeyPress);
+                } else {
+                    // Reset back to start prompt for any other input
+                    const originalBaseContent = baseContent.replace(/Command not recognized.*\(y\/n\): $/, '').replace(/\n$/, '') + '\nPress Enter or type "start" to begin...\n$ ';
+                    terminalOutput.textContent = originalBaseContent;
+                    const cursor = document.createElement('span');
+                    cursor.className = 'terminal-cursor';
+                    cursor.textContent = '█';
+                    terminalOutput.appendChild(cursor);
+                    this.setupUserInput(terminalOutput);
+                    document.removeEventListener('keydown', handleKeyPress);
+                }
+            } else if (event.key === 'Backspace') {
+                if (userInput.length > 0) {
+                    userInput = userInput.slice(0, -1);
+                    updateDisplay();
+                }
+            } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+                userInput += event.key;
+                updateDisplay();
+            }
+        };
+        
+        document.addEventListener('keydown', handleKeyPress);
+    }
+    
+    transitionToDesktop() {
+        console.log('🚀 Transitioning to desktop...');
+        
+        // Play the kevOS launcher sound
+        try {
+            const launcherAudio = new Audio('./sounds/kevOS-launcher.mp3');
+            launcherAudio.volume = 0.7;
+            launcherAudio.play().catch(error => {
+                console.log('Could not play kevOS launcher audio:', error);
+            });
+        } catch (error) {
+            console.log('Error loading kevOS launcher audio:', error);
+        }
+        
+        // Hide start screen
+        const startScreen = document.getElementById('kevos-start');
+        if (startScreen) {
+            startScreen.style.animation = 'launchScreenFadeOut 0.5s ease-in-out forwards';
+            setTimeout(() => {
+                startScreen.style.display = 'none';
+            }, 500);
+        }
+        
+        // Go directly to desktop
+        const desktop = document.querySelector('.desktop');
+        if (desktop) {
+            setTimeout(() => {
+                desktop.style.display = 'flex';
+                this.completeLaunchSequence(null, desktop);
+            }, 500);
         }
     }
     
@@ -296,6 +633,14 @@ class SoftOS {
                 desktop.style.display = 'flex';  // Changed from 'block' to 'flex' to match CSS
                 console.log('✅ Desktop display set to flex');
                 
+                // Play background video after desktop is shown
+                const bgVideo = desktop.querySelector('.webgl-background video');
+                if (bgVideo) {
+                    bgVideo.play().catch(e => {
+                        console.log('Background video autoplay blocked, will play on user interaction');
+                    });
+                }
+                
                 // Check if dock is visible
                 const dock = desktop.querySelector('.dock');
                 const dockItems = desktop.querySelectorAll('.dock-item');
@@ -324,23 +669,15 @@ class SoftOS {
             
             console.log('🖥️ Desktop should now be visible');
             
-            // Play the classic startup chime
+            // Register the welcome window after 1 second delay
             setTimeout(() => {
-                if (this.sounds) {
-                    this.sounds.playStartup();
-                    console.log('✅ Startup chime played');
-                } else {
-                    console.error('❌ Sounds system not available');
+                try {
+                    this.registerWelcomeWindow();
+                    console.log('✅ Welcome window registered');
+                } catch (error) {
+                    console.error('❌ Error registering welcome window:', error);
                 }
-            }, 300);
-            
-            // Register the welcome window that's created in HTML
-            try {
-                this.registerWelcomeWindow();
-                console.log('✅ Welcome window registered');
-            } catch (error) {
-                console.error('❌ Error registering welcome window:', error);
-            }
+            }, 1000);
             
             // Soundboard can be launched from desktop icon
             
@@ -353,19 +690,71 @@ class SoftOS {
             this.windows.set('welcome-window', welcomeWindow);
             welcomeWindow.style.zIndex = ++this.windowZIndex;
             
-            // Position the welcome window properly (it was created in HTML)
-            const centerX = (window.innerWidth - 480) / 2; // 480px is welcome window width
-            const centerY = (window.innerHeight - 320) / 2; // 320px is welcome window height
-            welcomeWindow.style.left = `${centerX}px`;
-            welcomeWindow.style.top = `${centerY}px`;
-            welcomeWindow.style.transform = 'none';
+            // Show the window (was hidden in CSS)
+            welcomeWindow.style.display = 'block';
+            welcomeWindow.classList.add('show');
+            
+            // Initial centering is now handled by CSS
+            // Don't set transform here to allow dragging to work properly
+            
+            // Play welcome sound when window appears
+            this.sounds.play('windowOpen');
         }
     }
     
     setupEventListeners() {
         // Dock app launching
         document.querySelectorAll('.dock-item').forEach(item => {
+            let hoverSound = null;
+            let fadeInterval = null;
+            
+            item.addEventListener('mouseenter', () => {
+                // Start persistent hover sound with fade in
+                hoverSound = new Audio('sounds/haptics/hover.mp3');
+                hoverSound.loop = true;
+                hoverSound.volume = 0;
+                hoverSound.play().catch(e => console.log('Hover sound blocked'));
+                
+                // Fade in
+                let volume = 0;
+                fadeInterval = setInterval(() => {
+                    volume += 0.02;
+                    if (volume >= 0.3) {
+                        volume = 0.3;
+                        clearInterval(fadeInterval);
+                    }
+                    hoverSound.volume = volume;
+                }, 20);
+            });
+            
+            item.addEventListener('mouseleave', () => {
+                // Fade out hover sound when leaving
+                if (fadeInterval) clearInterval(fadeInterval);
+                
+                if (hoverSound) {
+                    let volume = hoverSound.volume;
+                    fadeInterval = setInterval(() => {
+                        volume -= 0.02;
+                        if (volume <= 0) {
+                            hoverSound.pause();
+                            hoverSound.currentTime = 0;
+                            hoverSound = null;
+                            clearInterval(fadeInterval);
+                        } else {
+                            hoverSound.volume = volume;
+                        }
+                    }, 20);
+                }
+            });
+            
             item.addEventListener('click', (e) => {
+                // Stop hover sound on click
+                if (fadeInterval) clearInterval(fadeInterval);
+                if (hoverSound) {
+                    hoverSound.pause();
+                    hoverSound.currentTime = 0;
+                    hoverSound = null;
+                }
                 this.sounds.play('dockBounce');
                 this.launchApp(item.dataset.app);
                 this.addRippleEffect(item, e);
@@ -374,11 +763,56 @@ class SoftOS {
         
         // Desktop icon launching
         document.querySelectorAll('.desktop-icon').forEach(item => {
+            let hoverSound = null;
+            let fadeInterval = null;
+            
             item.addEventListener('mouseenter', () => {
-                this.sounds.play('hover');
+                // Start persistent hover sound with fade in
+                hoverSound = new Audio('sounds/haptics/hover.mp3');
+                hoverSound.loop = true;
+                hoverSound.volume = 0;
+                hoverSound.play().catch(e => console.log('Hover sound blocked'));
+                
+                // Fade in
+                let volume = 0;
+                fadeInterval = setInterval(() => {
+                    volume += 0.02;
+                    if (volume >= 0.3) {
+                        volume = 0.3;
+                        clearInterval(fadeInterval);
+                    }
+                    hoverSound.volume = volume;
+                }, 20);
+            });
+            
+            item.addEventListener('mouseleave', () => {
+                // Fade out hover sound when leaving
+                if (fadeInterval) clearInterval(fadeInterval);
+                
+                if (hoverSound) {
+                    let volume = hoverSound.volume;
+                    fadeInterval = setInterval(() => {
+                        volume -= 0.02;
+                        if (volume <= 0) {
+                            hoverSound.pause();
+                            hoverSound.currentTime = 0;
+                            hoverSound = null;
+                            clearInterval(fadeInterval);
+                        } else {
+                            hoverSound.volume = volume;
+                        }
+                    }, 20);
+                }
             });
             
             item.addEventListener('click', (e) => {
+                // Stop hover sound on click
+                if (fadeInterval) clearInterval(fadeInterval);
+                if (hoverSound) {
+                    hoverSound.pause();
+                    hoverSound.currentTime = 0;
+                    hoverSound = null;
+                }
                 this.sounds.play('click');
                 this.launchApp(item.dataset.app);
                 this.addRippleEffect(item, e);
@@ -386,6 +820,13 @@ class SoftOS {
             
             // Double-click for faster launch
             item.addEventListener('dblclick', (e) => {
+                // Stop hover sound on double click
+                if (fadeInterval) clearInterval(fadeInterval);
+                if (hoverSound) {
+                    hoverSound.pause();
+                    hoverSound.currentTime = 0;
+                    hoverSound = null;
+                }
                 this.sounds.play('windowOpen');
                 this.launchApp(item.dataset.app);
             });
@@ -414,6 +855,12 @@ class SoftOS {
     setupDockInteractions() {
         const dock = document.querySelector('.dock');
         const dockItems = document.querySelectorAll('.dock-item');
+        
+        // Check if dock exists before setting up interactions
+        if (!dock) {
+            console.log('🔧 Dock not found, skipping dock interactions setup');
+            return;
+        }
         
         // Add hover sound effects to dock items
         dockItems.forEach(item => {
@@ -452,13 +899,21 @@ class SoftOS {
     
     setupWindowControls() {
         document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('control-btn')) {
+            if (e.target.classList.contains('control-btn') || e.target.classList.contains('app-control-btn')) {
                 const window = e.target.closest('.window');
                 const action = e.target.classList.contains('close') ? 'close' :
                              e.target.classList.contains('minimize') ? 'minimize' : 'maximize';
                 
+                console.log(`🎛️ Window control triggered - Window: ${window?.id}, Action: ${action}, Target:`, e.target);
                 this.handleWindowControl(window, action);
             }
+        });
+        
+        // Add hover sound effects to all control buttons
+        document.querySelectorAll('.control-btn, .app-control-btn').forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
         });
         
         // Window dragging
@@ -630,7 +1085,208 @@ class SoftOS {
         const config = appConfigs[appName];
         if (config) {
             this.createWindow(config);
+            
+            // Track task completion
+            if (appName === 'mp3player') {
+                this.completeTask('mp3-player');
+            } else if (appName === 'notes') {
+                this.completeTask('notes');
+            }
         }
+    }
+    
+    openEQWindow() {
+        console.log('🎛️ Opening EQ window...');
+        
+        // Check if EQ window is already open
+        const existingEQ = document.getElementById('eq-window');
+        if (existingEQ) {
+            console.log('🎛️ EQ window already exists, removing and recreating');
+            existingEQ.remove();
+            this.windows.delete('eq-window');
+        }
+        
+        // Create a super simple window without any complex positioning
+        const windowId = 'eq-window';
+        const window = document.createElement('div');
+        window.className = 'window eq-window-simple';
+        window.id = windowId;
+        // Find MP3 player window for positioning
+        const mp3Window = document.querySelector('.mp3-player-standalone')?.closest('.window');
+        let left = '50%';
+        let top = '50%';
+        let transform = 'translate(-50%, -50%)';
+        
+        if (mp3Window) {
+            const mp3Rect = mp3Window.getBoundingClientRect();
+            left = `${Math.max(10, mp3Rect.right + 10)}px`;
+            top = `${Math.max(10, mp3Rect.top)}px`;
+            transform = 'none';
+            console.log('🎛️ Positioning EQ window relative to MP3 player:', {
+                mp3Right: mp3Rect.right,
+                mp3Top: mp3Rect.top,
+                eqLeft: left,
+                eqTop: top
+            });
+        } else {
+            console.log('🎛️ MP3 player not found, centering EQ window');
+        }
+        
+        window.style.cssText = `
+            position: fixed !important;
+            left: ${left} !important;
+            top: ${top} !important;
+            transform: ${transform} !important;
+            width: 360px !important;
+            height: 500px !important;
+            z-index: 9999 !important;
+            display: block !important;
+            background: white !important;
+            border: 2px solid #ccc !important;
+            border-radius: 12px !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+            animation: none !important;
+            transition: none !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+        `;
+        
+        // EQ window with proper styling matching other windows
+        window.innerHTML = `
+            <div class="eq-window-container">
+                <div class="app-window-container">
+                    <div class="app-window-header drag-handle">
+                        <button class="app-control-btn close" title="Close"></button>
+                        <button class="app-control-btn minimize" title="Minimize"></button>
+                        <button class="app-control-btn maximize" title="Maximize"></button>
+                        <div class="app-brand">Equalizer</div>
+                        <div class="drag-grip">⋮⋮</div>
+                    </div>
+                    <div class="app-window-content eq-content">
+                        <!-- EQ Display -->
+                        <div class="eq-display">
+                            <div class="eq-brand">AUDIO EQ-7</div>
+                            <div class="eq-led-indicator"></div>
+                        </div>
+                        
+                        <!-- Frequency Bands -->
+                        <div class="eq-bands">
+                            <div class="eq-band">
+                                <div class="freq-label">60Hz</div>
+                                <div class="eq-slider-container">
+                                    <input type="range" class="eq-slider" id="eq-60" min="-12" max="12" value="0" orient="vertical">
+                                    <div class="eq-slider-track"></div>
+                                    <div class="eq-slider-handle"></div>
+                                </div>
+                                <div class="freq-value" id="eq-60-value">0dB</div>
+                            </div>
+                            <div class="eq-band">
+                                <div class="freq-label">170Hz</div>
+                                <div class="eq-slider-container">
+                                    <input type="range" class="eq-slider" id="eq-170" min="-12" max="12" value="0" orient="vertical">
+                                    <div class="eq-slider-track"></div>
+                                    <div class="eq-slider-handle"></div>
+                                </div>
+                                <div class="freq-value" id="eq-170-value">0dB</div>
+                            </div>
+                            <div class="eq-band">
+                                <div class="freq-label">310Hz</div>
+                                <div class="eq-slider-container">
+                                    <input type="range" class="eq-slider" id="eq-310" min="-12" max="12" value="0" orient="vertical">
+                                    <div class="eq-slider-track"></div>
+                                    <div class="eq-slider-handle"></div>
+                                </div>
+                                <div class="freq-value" id="eq-310-value">0dB</div>
+                            </div>
+                            <div class="eq-band">
+                                <div class="freq-label">600Hz</div>
+                                <div class="eq-slider-container">
+                                    <input type="range" class="eq-slider" id="eq-600" min="-12" max="12" value="0" orient="vertical">
+                                    <div class="eq-slider-track"></div>
+                                    <div class="eq-slider-handle"></div>
+                                </div>
+                                <div class="freq-value" id="eq-600-value">0dB</div>
+                            </div>
+                            <div class="eq-band">
+                                <div class="freq-label">1kHz</div>
+                                <div class="eq-slider-container">
+                                    <input type="range" class="eq-slider" id="eq-1000" min="-12" max="12" value="0" orient="vertical">
+                                    <div class="eq-slider-track"></div>
+                                    <div class="eq-slider-handle"></div>
+                                </div>
+                                <div class="freq-value" id="eq-1000-value">0dB</div>
+                            </div>
+                            <div class="eq-band">
+                                <div class="freq-label">3kHz</div>
+                                <div class="eq-slider-container">
+                                    <input type="range" class="eq-slider" id="eq-3000" min="-12" max="12" value="0" orient="vertical">
+                                    <div class="eq-slider-track"></div>
+                                    <div class="eq-slider-handle"></div>
+                                </div>
+                                <div class="freq-value" id="eq-3000-value">0dB</div>
+                            </div>
+                            <div class="eq-band">
+                                <div class="freq-label">6kHz</div>
+                                <div class="eq-slider-container">
+                                    <input type="range" class="eq-slider" id="eq-6000" min="-12" max="12" value="0" orient="vertical">
+                                    <div class="eq-slider-track"></div>
+                                    <div class="eq-slider-handle"></div>
+                                </div>
+                                <div class="freq-value" id="eq-6000-value">0dB</div>
+                            </div>
+                            <div class="eq-band">
+                                <div class="freq-label">12kHz</div>
+                                <div class="eq-slider-container">
+                                    <input type="range" class="eq-slider" id="eq-12000" min="-12" max="12" value="0" orient="vertical">
+                                    <div class="eq-slider-track"></div>
+                                    <div class="eq-slider-handle"></div>
+                                </div>
+                                <div class="freq-value" id="eq-12000-value">0dB</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Effects Section -->
+                        <div class="eq-effects">
+                            <div class="effect-group">
+                                <label>Master Volume</label>
+                                <input type="range" id="master-volume" min="0" max="100" value="75" class="effect-slider">
+                                <span id="master-volume-value">75%</span>
+                            </div>
+                            <div class="effect-group">
+                                <label>Compression</label>
+                                <input type="range" id="compression" min="0" max="100" value="0" class="effect-slider">
+                                <span id="compression-value">0%</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Presets -->
+                        <div class="eq-presets">
+                            <button class="eq-preset-btn active" data-preset="normal">Normal</button>
+                            <button class="eq-preset-btn" data-preset="old-radio">Old Radio</button>
+                            <button class="eq-preset-btn" data-preset="telephone">Telephone</button>
+                            <button class="eq-preset-btn" data-preset="elevator">Elevator</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.querySelector('.windows-container').appendChild(window);
+        this.windows.set(windowId, window);
+        
+        console.log('🎛️ Simple EQ window added to DOM');
+        
+        // Setup proper window controls (matching other windows)
+        setTimeout(() => {
+            this.setupEQWindowControls(window);
+            this.setupEQControls();
+            this.initializeAudioContext(); // Initialize Web Audio API
+            console.log('🎛️ EQ window controls setup complete');
+        }, 10);
+        
+        console.log('🎛️ EQ window setup complete');
+        this.sounds.play('windowOpen');
     }
     
     createWindow(config) {
@@ -644,49 +1300,42 @@ class SoftOS {
         window.style.height = config.height;
         window.style.zIndex = ++this.windowZIndex;
         
-        // Calculate position BEFORE adding to DOM to prevent visual jump
-        let posX, posY;
-        
+        // Calculate offset for cascading windows  
         if (config.position === 'top-right') {
             // Position in top right corner with some padding
-            posX = window.innerWidth - parseInt(config.width) - 40;
-            posY = 80; // Below taskbar
+            window.style.left = `${window.innerWidth - parseInt(config.width) - 40}px`;
+            window.style.top = '80px';
+            window.style.transform = 'none';
         } else {
-            // Default cascading behavior for other windows
+            // Default centered behavior with slight cascading offset
             const windowCount = this.windows.size;
             const offsetX = (windowCount * 30) % 200; // Reset after 6 windows
             const offsetY = (windowCount * 20) % 120; // Reset after 6 windows
             
-            // Keep windows centered but with slight cascading offset
-            const centerX = (window.innerWidth - parseInt(config.width)) / 2;
-            const centerY = (window.innerHeight - parseInt(config.height)) / 2;
-            
-            posX = centerX + offsetX;
-            posY = centerY + offsetY;
+            // Use transform for centering with offset
+            window.style.left = '50%';
+            window.style.top = '50%';
+            window.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
         }
-        
-        // Set position immediately, before adding to DOM
-        window.style.left = `${posX}px`;
-        window.style.top = `${posY}px`;
-        window.style.transform = 'none';
         
         if (config.customWindow) {
             // Custom window without standard chrome
             window.innerHTML = config.content;
             window.classList.add('custom-window');
         } else {
-            // Standard window with chrome
+            // Standard window with new app-style chrome
             window.innerHTML = `
-                <div class="window-header">
-                    <div class="window-controls">
-                        <button class="control-btn close"></button>
-                        <button class="control-btn minimize"></button>
-                        <button class="control-btn maximize"></button>
+                <div class="app-window-container">
+                    <div class="app-window-header drag-handle">
+                        <button class="app-control-btn close" title="Close"></button>
+                        <button class="app-control-btn minimize" title="Minimize"></button>
+                        <button class="app-control-btn maximize" title="Maximize"></button>
+                        <div class="app-brand">${config.title}</div>
+                        <div class="drag-grip">⋮⋮</div>
                     </div>
-                    <div class="window-title">${config.title}</div>
-                </div>
-                <div class="window-content">
-                    ${config.content}
+                    <div class="app-window-content">
+                        ${config.content}
+                    </div>
                 </div>
             `;
         }
@@ -694,6 +1343,11 @@ class SoftOS {
         document.querySelector('.windows-container').appendChild(window);
         this.windows.set(windowId, window);
         this.bringToFront(window);
+        
+        // Make window visible after positioning is set
+        setTimeout(() => {
+            window.classList.add('show');
+        }, 10);
         
         // Add event listeners for app-specific functionality
         this.setupAppFunctionality(window, config.title);
@@ -751,23 +1405,267 @@ class SoftOS {
         return `
             <div style="height: 100%; display: flex; flex-direction: column;">
                 <div style="margin-bottom: 1rem;">
-                    <h3 style="font-weight: 300; margin-bottom: 0.5rem;">Quick Note</h3>
+                    <h3 style="font-weight: 300; margin-bottom: 0.5rem;">Notes</h3>
                 </div>
-                <textarea placeholder="Write your thoughts here..." style="
+                
+                <!-- Formatting Toolbar -->
+                <div class="notes-toolbar" style="
+                    display: flex;
+                    gap: 0.5rem;
+                    margin-bottom: 0.75rem;
+                    padding: 0.5rem;
+                    background: rgba(255, 107, 53, 0.05);
+                    border-radius: 8px;
+                    flex-wrap: wrap;
+                    align-items: center;
+                ">
+                    <!-- Text formatting -->
+                    <button class="format-btn" data-command="bold" title="Bold">
+                        <strong>B</strong>
+                    </button>
+                    <button class="format-btn" data-command="italic" title="Italic">
+                        <em>I</em>
+                    </button>
+                    <button class="format-btn" data-command="underline" title="Underline">
+                        <u>U</u>
+                    </button>
+                    
+                    <div class="toolbar-separator"></div>
+                    
+                    <!-- Alignment -->
+                    <button class="format-btn" data-command="justifyLeft" title="Align Left">
+                        ◧
+                    </button>
+                    <button class="format-btn" data-command="justifyCenter" title="Center">
+                        ▣
+                    </button>
+                    <button class="format-btn" data-command="justifyRight" title="Align Right">
+                        ◨
+                    </button>
+                    
+                    <div class="toolbar-separator"></div>
+                    
+                    <!-- Lists -->
+                    <button class="format-btn" data-command="insertUnorderedList" title="Bullet List">
+                        •
+                    </button>
+                    <button class="format-btn" data-command="insertOrderedList" title="Numbered List">
+                        1.
+                    </button>
+                </div>
+                
+                <!-- Rich Text Editor -->
+                <div class="notes-editor" contenteditable="true" style="
                     flex: 1;
                     border: none;
-                    background: rgba(255, 107, 53, 0.05);
+                    background: linear-gradient(145deg, 
+                        #f8f7f5 0%,
+                        #f2f0ee 15%,
+                        #eeecea 30%,
+                        #e8e6e3 60%,
+                        #e2ddd9 85%,
+                        #dbd6d2 100%);
                     border-radius: 12px;
                     padding: 1rem;
                     font-family: inherit;
                     font-size: 14px;
                     line-height: 1.6;
-                    color: var(--charcoal);
-                    resize: none;
+                    color: #8a7968;
                     outline: none;
-                "></textarea>
+                    overflow-y: auto;
+                    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.1);
+                " data-placeholder="Start writing your notes...">
+                </div>
             </div>
+            
+            <style>
+                .format-btn {
+                    background: linear-gradient(145deg, 
+                        rgba(255, 255, 255, 0.95) 0%,
+                        rgba(250, 245, 240, 0.9) 50%,
+                        rgba(184, 179, 173, 0.3) 100%);
+                    border: 1px solid rgba(184, 179, 173, 0.4);
+                    border-radius: 6px;
+                    padding: 0.25rem 0.5rem;
+                    font-size: 12px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    min-width: 28px;
+                    height: 28px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 
+                        0 2px 4px rgba(0, 0, 0, 0.1),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+                }
+                
+                .format-btn:hover {
+                    background: linear-gradient(145deg, 
+                        rgba(255, 255, 255, 0.98) 0%,
+                        rgba(255, 200, 150, 0.3) 50%,
+                        rgba(255, 107, 53, 0.2) 100%);
+                    border-color: rgba(255, 107, 53, 0.3);
+                    box-shadow: 
+                        0 3px 6px rgba(0, 0, 0, 0.15),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+                }
+                
+                .format-btn:active,
+                .format-btn.active {
+                    background: linear-gradient(145deg, 
+                        rgba(184, 179, 173, 0.3) 0%,
+                        rgba(255, 107, 53, 0.3) 50%,
+                        rgba(255, 255, 255, 0.6) 100%);
+                    border-color: rgba(255, 107, 53, 0.5);
+                    box-shadow: 
+                        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+                        0 1px 2px rgba(255, 255, 255, 0.3);
+                    transform: translateY(1px);
+                }
+                
+                .toolbar-separator {
+                    width: 1px;
+                    height: 20px;
+                    background: rgba(184, 179, 173, 0.3);
+                }
+                
+                .notes-editor:empty:before {
+                    content: attr(data-placeholder);
+                    color: var(--warm-gray);
+                    opacity: 0.6;
+                }
+                
+                .notes-editor:focus:before {
+                    display: none;
+                }
+                
+                .notes-editor ul, .notes-editor ol {
+                    padding-left: 1.5rem;
+                    margin: 0.5rem 0;
+                }
+                
+                .notes-editor li {
+                    margin: 0.25rem 0;
+                }
+            </style>
         `;
+    }
+    
+    setupNotes(windowElement) {
+        // Small delay to ensure DOM is fully rendered
+        setTimeout(() => {
+            const editor = windowElement.querySelector('.notes-editor');
+            const formatBtns = windowElement.querySelectorAll('.format-btn');
+            
+            if (!editor) {
+                console.log('🔍 Notes editor not found');
+                return;
+            }
+            
+            console.log('📝 Setting up notes editor');
+            
+            this.setupNotesEditor(windowElement, editor, formatBtns);
+        }, 100);
+    }
+    
+    setupNotesEditor(windowElement, editor, formatBtns) {
+        
+        // Add click handlers for formatting buttons
+        formatBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const command = btn.dataset.command;
+                
+                // Focus editor before executing command
+                editor.focus();
+                
+                // Execute formatting command
+                try {
+                    document.execCommand(command, false, null);
+                    
+                    // Update button state for toggle commands
+                    this.updateFormatButtonStates(windowElement);
+                    
+                } catch (error) {
+                    console.log('Format command not supported:', command);
+                }
+            });
+            
+            // Add hover sound effects
+            btn.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
+        });
+        
+        // Update button states when selection changes
+        editor.addEventListener('mouseup', () => {
+            this.updateFormatButtonStates(windowElement);
+        });
+        
+        editor.addEventListener('keyup', () => {
+            this.updateFormatButtonStates(windowElement);
+        });
+        
+        // Save content to localStorage on change
+        editor.addEventListener('input', () => {
+            localStorage.setItem('kevOS-notes-content', editor.innerHTML);
+        });
+        
+        // Always set default haiku content every time notes opens
+        console.log('📝 Setting default haiku content');
+        const haikuContent = `<div style="text-align: center; font-style: italic; color: #8a7968; margin-top: 2rem; line-height: 1.6;">
+            <div>The perfect program</div>
+            <div>has no bugs because it was</div>
+            <div>never written at all</div>
+        </div>`;
+        editor.innerHTML = haikuContent;
+        console.log('📝 Haiku content set:', editor.innerHTML);
+        
+        // Start tracking typing for Radiohead achievement
+        this.trackTypingInNotes(editor);
+    }
+    
+    updateFormatButtonStates(windowElement) {
+        const formatBtns = windowElement.querySelectorAll('.format-btn');
+        
+        formatBtns.forEach(btn => {
+            const command = btn.dataset.command;
+            let isActive = false;
+            
+            try {
+                switch(command) {
+                    case 'bold':
+                        isActive = document.queryCommandState('bold');
+                        break;
+                    case 'italic':
+                        isActive = document.queryCommandState('italic');
+                        break;
+                    case 'underline':
+                        isActive = document.queryCommandState('underline');
+                        break;
+                    case 'justifyLeft':
+                        isActive = document.queryCommandState('justifyLeft');
+                        break;
+                    case 'justifyCenter':
+                        isActive = document.queryCommandState('justifyCenter');
+                        break;
+                    case 'justifyRight':
+                        isActive = document.queryCommandState('justifyRight');
+                        break;
+                    case 'insertUnorderedList':
+                        isActive = document.queryCommandState('insertUnorderedList');
+                        break;
+                    case 'insertOrderedList':
+                        isActive = document.queryCommandState('insertOrderedList');
+                        break;
+                }
+                
+                btn.classList.toggle('active', isActive);
+            } catch (error) {
+                // queryCommandState not supported for this command
+            }
+        });
     }
     
     createCalculatorContent() {
@@ -956,13 +1854,13 @@ class SoftOS {
     
     createSoundboardContent() {
         return `
-            <div class="soundboard-device-standalone">
+            <div class="app-window-container">
                 <!-- Integrated window controls with drag handle -->
-                <div class="soundboard-window-controls drag-handle">
-                    <button class="soundboard-control-btn soundboard-close" title="Close"></button>
-                    <button class="soundboard-control-btn soundboard-minimize" title="Minimize"></button>
-                    <button class="soundboard-control-btn soundboard-maximize" title="Maximize"></button>
-                    <div class="soundboard-brand">kevSOUND</div>
+                <div class="app-window-header drag-handle">
+                    <button class="app-control-btn close" title="Close"></button>
+                    <button class="app-control-btn minimize" title="Minimize"></button>
+                    <button class="app-control-btn maximize" title="Maximize"></button>
+                    <div class="app-brand">kevSOUND</div>
                     <div class="drag-grip">⋮⋮</div>
                 </div>
                 
@@ -1040,11 +1938,11 @@ class SoftOS {
         return `
             <div class="mp3-player-standalone">
                 <!-- Integrated window controls -->
-                <div class="mp3-window-controls drag-handle">
-                    <button class="mp3-control-btn mp3-close" title="Close"></button>
-                    <button class="mp3-control-btn mp3-minimize" title="Minimize"></button>
-                    <button class="mp3-control-btn mp3-maximize" title="Maximize"></button>
-                    <div class="mp3-brand">kevMP3</div>
+                <div class="app-window-header drag-handle">
+                    <button class="app-control-btn close" title="Close"></button>
+                    <button class="app-control-btn minimize" title="Minimize"></button>
+                    <button class="app-control-btn maximize" title="Maximize"></button>
+                    <div class="app-brand">kevMP3</div>
                     <div class="drag-grip">⋮⋮</div>
                 </div>
                 
@@ -1077,13 +1975,91 @@ class SoftOS {
                     <!-- Main control buttons -->
                     <div class="control-row main-controls">
                         <button class="mp3-btn" id="mp3-prev" title="Previous">
-                            <div class="btn-icon">⏮</div>
+                            <svg class="btn-icon-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <filter id="inset-prev">
+                                        <feGaussianBlur in="SourceAlpha" stdDeviation="1"/>
+                                        <feOffset dx="1" dy="1" result="offsetblur"/>
+                                        <feFlood flood-color="#ffffff" flood-opacity="0.5"/>
+                                        <feComposite in2="offsetblur" operator="in"/>
+                                        <feMerge>
+                                            <feMergeNode/>
+                                            <feMergeNode in="SourceGraphic"/>
+                                        </feMerge>
+                                    </filter>
+                                </defs>
+                                <path d="M6 6v12l2-2V8l-2-2zm2 6l8-6v12l-8-6z" 
+                                      fill="rgba(184, 179, 173, 0.4)"
+                                      filter="url(#inset-prev)"
+                                      stroke="rgba(45, 42, 37, 0.2)"
+                                      stroke-width="0.5"/>
+                            </svg>
                         </button>
                         <button class="mp3-btn large" id="mp3-play" title="Play/Pause">
-                            <div class="btn-icon" id="mp3-play-icon">▶</div>
+                            <svg class="btn-icon-svg large play-icon" id="mp3-play-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <filter id="inset-play">
+                                        <feGaussianBlur in="SourceAlpha" stdDeviation="1.2"/>
+                                        <feOffset dx="1.5" dy="1.5" result="offsetblur"/>
+                                        <feFlood flood-color="#ffffff" flood-opacity="0.6"/>
+                                        <feComposite in2="offsetblur" operator="in"/>
+                                        <feMerge>
+                                            <feMergeNode/>
+                                            <feMergeNode in="SourceGraphic"/>
+                                        </feMerge>
+                                    </filter>
+                                </defs>
+                                <path d="M8 5v14l11-7z" 
+                                      fill="rgba(184, 179, 173, 0.4)"
+                                      filter="url(#inset-play)"
+                                      stroke="rgba(45, 42, 37, 0.2)"
+                                      stroke-width="0.5"/>
+                            </svg>
+                            <svg class="btn-icon-svg large pause-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="display: none;">
+                                <defs>
+                                    <filter id="inset-pause">
+                                        <feGaussianBlur in="SourceAlpha" stdDeviation="1.2"/>
+                                        <feOffset dx="1.5" dy="1.5" result="offsetblur"/>
+                                        <feFlood flood-color="#ffffff" flood-opacity="0.6"/>
+                                        <feComposite in2="offsetblur" operator="in"/>
+                                        <feMerge>
+                                            <feMergeNode/>
+                                            <feMergeNode in="SourceGraphic"/>
+                                        </feMerge>
+                                    </filter>
+                                </defs>
+                                <path d="M6 5h4v14H6V5z" 
+                                      fill="rgba(184, 179, 173, 0.4)"
+                                      filter="url(#inset-pause)"
+                                      stroke="rgba(45, 42, 37, 0.2)"
+                                      stroke-width="0.5"/>
+                                <path d="M14 5h4v14h-4V5z" 
+                                      fill="rgba(184, 179, 173, 0.4)"
+                                      filter="url(#inset-pause)"
+                                      stroke="rgba(45, 42, 37, 0.2)"
+                                      stroke-width="0.5"/>
+                            </svg>
                         </button>
                         <button class="mp3-btn" id="mp3-next" title="Next">
-                            <div class="btn-icon">⏭</div>
+                            <svg class="btn-icon-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <filter id="inset-next">
+                                        <feGaussianBlur in="SourceAlpha" stdDeviation="1"/>
+                                        <feOffset dx="1" dy="1" result="offsetblur"/>
+                                        <feFlood flood-color="#ffffff" flood-opacity="0.5"/>
+                                        <feComposite in2="offsetblur" operator="in"/>
+                                        <feMerge>
+                                            <feMergeNode/>
+                                            <feMergeNode in="SourceGraphic"/>
+                                        </feMerge>
+                                    </filter>
+                                </defs>
+                                <path d="M8 6v12l8-6-8-6zm8 2v8l2 2V6l-2 2z" 
+                                      fill="rgba(184, 179, 173, 0.4)"
+                                      filter="url(#inset-next)"
+                                      stroke="rgba(45, 42, 37, 0.2)"
+                                      stroke-width="0.5"/>
+                            </svg>
                         </button>
                     </div>
                     
@@ -1122,6 +2098,33 @@ class SoftOS {
                             </div>
                         </div>
                     </div>
+                </div>
+                
+                <!-- EQ Button - Bottom Left Corner -->
+                <div class="eq-button-container">
+                    <button class="eq-btn" id="mp3-eq-btn" title="Equalizer">
+                        <svg class="eq-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <filter id="inset-eq">
+                                    <feGaussianBlur in="SourceAlpha" stdDeviation="1"/>
+                                    <feOffset dx="1" dy="1" result="offsetblur"/>
+                                    <feFlood flood-color="#ffffff" flood-opacity="0.5"/>
+                                    <feComposite in2="offsetblur" operator="in"/>
+                                    <feMerge>
+                                        <feMergeNode/>
+                                        <feMergeNode in="SourceGraphic"/>
+                                    </feMerge>
+                                </filter>
+                            </defs>
+                            <path d="M3 13h2l1-4 2 8 2-12 2 4h9" 
+                                  fill="none"
+                                  stroke="rgba(184, 179, 173, 0.6)"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  filter="url(#inset-eq)"/>
+                        </svg>
+                    </button>
                 </div>
                 
                 <!-- Hidden YouTube iframe -->
@@ -1168,24 +2171,52 @@ class SoftOS {
                     border: none;
                     cursor: pointer;
                     transition: all 0.15s ease;
-                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+                    position: relative;
+                    box-shadow: 
+                        0 2px 4px rgba(0, 0, 0, 0.3),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.3);
                 }
                 
                 .mp3-close {
-                    background: linear-gradient(145deg, #ff6b6b, #ff5252);
+                    background: linear-gradient(145deg, #ff8080, #ff5252, #cc4444);
+                    border: 0.5px solid rgba(204, 68, 68, 0.3);
                 }
                 
                 .mp3-minimize {
-                    background: linear-gradient(145deg, #ffd93d, #ffca28);
+                    background: linear-gradient(145deg, #ffe066, #ffca28, #ccaa00);
+                    border: 0.5px solid rgba(204, 170, 0, 0.3);
                 }
                 
                 .mp3-maximize {
-                    background: linear-gradient(145deg, #6bcf7f, #4caf50);
+                    background: linear-gradient(145deg, #90ee90, #4caf50, #3d8b40);
+                    border: 0.5px solid rgba(61, 139, 64, 0.3);
                 }
                 
                 .mp3-control-btn:hover {
-                    transform: scale(1.1);
-                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+                    transform: translateY(-1px);
+                    box-shadow: 
+                        0 3px 6px rgba(0, 0, 0, 0.4),
+                        inset 0 1px 3px rgba(255, 255, 255, 0.4);
+                }
+                
+                .mp3-control-btn:active {
+                    transform: translateY(1px);
+                    box-shadow: 
+                        0 1px 2px rgba(0, 0, 0, 0.4),
+                        inset 0 2px 4px rgba(0, 0, 0, 0.3),
+                        inset 0 -1px 2px rgba(255, 255, 255, 0.2);
+                }
+                
+                .mp3-close:active {
+                    background: linear-gradient(145deg, #cc4444, #ff5252, #ff8080);
+                }
+                
+                .mp3-minimize:active {
+                    background: linear-gradient(145deg, #ccaa00, #ffca28, #ffe066);
+                }
+                
+                .mp3-maximize:active {
+                    background: linear-gradient(145deg, #3d8b40, #4caf50, #90ee90);
                 }
                 
                 .mp3-brand {
@@ -1353,18 +2384,20 @@ class SoftOS {
                     border: none;
                     background: linear-gradient(145deg, 
                         rgba(255, 255, 255, 0.95) 0%,
-                        var(--light-cream) 50%,
-                        rgba(184, 179, 173, 0.3) 100%);
+                        var(--light-cream) 30%,
+                        var(--warm-cream) 70%,
+                        rgba(184, 179, 173, 0.4) 100%);
                     box-shadow: 
-                        4px 4px 10px rgba(184, 179, 173, 0.5),
-                        -2px -2px 8px rgba(255, 255, 255, 0.7),
-                        inset 0 1px 3px rgba(255, 255, 255, 0.5);
+                        6px 6px 16px rgba(184, 179, 173, 0.4),
+                        -3px -3px 12px rgba(255, 255, 255, 0.8),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.6);
                     cursor: pointer;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    transition: all 0.15s ease;
-                    color: var(--charcoal);
+                    transition: all 0.2s ease;
+                    position: relative;
+                    overflow: visible;
                 }
                 
                 .mp3-btn.large {
@@ -1375,26 +2408,90 @@ class SoftOS {
                 .mp3-btn:hover {
                     background: linear-gradient(145deg, 
                         rgba(255, 255, 255, 0.98) 0%,
-                        var(--cream) 50%,
-                        rgba(184, 179, 173, 0.35) 100%);
-                    transform: translateY(-1px);
+                        var(--cream) 30%,
+                        var(--warm-cream) 70%,
+                        rgba(184, 179, 173, 0.45) 100%);
+                    box-shadow: 
+                        8px 8px 20px rgba(184, 179, 173, 0.5),
+                        -4px -4px 16px rgba(255, 255, 255, 0.9),
+                        inset 0 2px 4px rgba(255, 255, 255, 0.7);
+                    transform: translateY(-2px);
                 }
                 
                 .mp3-btn:active {
+                    background: linear-gradient(145deg, 
+                        var(--warm-cream) 0%,
+                        rgba(184, 179, 173, 0.3) 30%,
+                        var(--light-cream) 100%);
                     box-shadow: 
-                        inset 3px 3px 6px rgba(184, 179, 173, 0.5),
-                        inset -2px -2px 4px rgba(255, 255, 255, 0.4);
+                        inset 4px 4px 8px rgba(184, 179, 173, 0.6),
+                        inset -2px -2px 6px rgba(255, 255, 255, 0.3),
+                        2px 2px 4px rgba(184, 179, 173, 0.2);
                     transform: translateY(1px);
                 }
                 
-                .btn-icon {
-                    font-size: 18px;
-                    font-weight: bold;
+                /* SVG Icon Styles - Icons appear carved into the button */
+                .btn-icon-svg {
+                    width: 24px;
+                    height: 24px;
+                    position: relative;
+                    filter: drop-shadow(0 -1px 1px rgba(255, 255, 255, 0.4))
+                            drop-shadow(0 2px 2px rgba(45, 42, 37, 0.3));
+                    transition: all 0.2s ease;
                 }
                 
-                .mp3-btn.large .btn-icon {
-                    font-size: 24px;
+                .btn-icon-svg.large {
+                    width: 32px;
+                    height: 32px;
+                    filter: drop-shadow(0 -1px 2px rgba(255, 255, 255, 0.5))
+                            drop-shadow(0 2px 3px rgba(45, 42, 37, 0.4));
                 }
+                
+                .btn-icon-svg path,
+                .btn-icon-svg g {
+                    transition: all 0.2s ease;
+                }
+                
+                /* Hover state - icons get slightly deeper */
+                .mp3-btn:hover .btn-icon-svg {
+                    filter: drop-shadow(0 -1px 2px rgba(255, 255, 255, 0.6))
+                            drop-shadow(0 2px 3px rgba(45, 42, 37, 0.5));
+                }
+                
+                .mp3-btn:hover .btn-icon-svg path {
+                    fill: rgba(184, 179, 173, 0.5) !important;
+                    stroke: rgba(45, 42, 37, 0.3) !important;
+                }
+                
+                /* Active state - icons get pressed deeper */
+                .mp3-btn:active .btn-icon-svg {
+                    filter: drop-shadow(0 -0.5px 0.5px rgba(255, 255, 255, 0.3))
+                            drop-shadow(0 1px 1px rgba(45, 42, 37, 0.6));
+                }
+                
+                .mp3-btn:active .btn-icon-svg path {
+                    fill: rgba(184, 179, 173, 0.6) !important;
+                    stroke: rgba(45, 42, 37, 0.4) !important;
+                    stroke-width: 0.7;
+                }
+                
+                /* Position SVG icons absolutely to stack them */
+                .mp3-btn.large {
+                    position: relative;
+                }
+                
+                .mp3-btn.large .btn-icon-svg {
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                }
+                
+                .mp3-btn.large:active .btn-icon-svg {
+                    transform: translate(-50%, -50%) translateY(1px);
+                }
+                
+                /* Pause icon visibility is controlled by JavaScript inline styles only */
                 
                 /* Large Volume Knob */
                 .volume-section {
@@ -1538,8 +2635,690 @@ class SoftOS {
                     opacity: 0.7;
                 }
                 
+                /* EQ Button Styling */
+                .eq-button-container {
+                    position: absolute;
+                    bottom: 12px;
+                    left: 12px;
+                }
+                
+                .eq-btn {
+                    width: 36px;
+                    height: 36px;
+                    border: none;
+                    border-radius: 50%;
+                    background: linear-gradient(145deg, 
+                        rgba(250, 245, 240, 0.95) 0%,
+                        rgba(230, 225, 220, 0.8) 50%,
+                        rgba(184, 179, 173, 0.6) 100%);
+                    box-shadow: 
+                        0 4px 8px rgba(45, 42, 37, 0.2),
+                        inset 0 2px 4px rgba(255, 255, 255, 0.6),
+                        inset 0 -2px 4px rgba(184, 179, 173, 0.3);
+                    border: 1px solid rgba(255, 255, 255, 0.5);
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.15s ease;
+                }
+                
+                .eq-btn:hover {
+                    background: linear-gradient(145deg, 
+                        rgba(255, 250, 245, 0.98) 0%,
+                        rgba(240, 235, 230, 0.85) 50%,
+                        rgba(194, 189, 183, 0.65) 100%);
+                    box-shadow: 
+                        0 6px 12px rgba(45, 42, 37, 0.25),
+                        inset 0 3px 6px rgba(255, 255, 255, 0.7),
+                        inset 0 -3px 6px rgba(184, 179, 173, 0.35);
+                    transform: translateY(-1px);
+                }
+                
+                .eq-btn:active {
+                    background: linear-gradient(145deg, 
+                        rgba(224, 219, 213, 0.9) 0%,
+                        rgba(204, 199, 193, 0.8) 50%,
+                        rgba(184, 179, 173, 0.7) 100%);
+                    box-shadow: 
+                        0 2px 4px rgba(45, 42, 37, 0.3),
+                        inset 0 2px 6px rgba(184, 179, 173, 0.4),
+                        inset 0 -1px 3px rgba(255, 255, 255, 0.3);
+                    transform: translateY(1px);
+                }
+                
+                .eq-icon {
+                    width: 18px;
+                    height: 18px;
+                }
+                
             </style>
         `;
+    }
+    
+    createEQContent() {
+        return `
+            <div class="eq-window-container">
+                <div class="app-window-container">
+                    <div class="app-window-header drag-handle">
+                        <button class="app-control-btn close" title="Close"></button>
+                        <button class="app-control-btn minimize" title="Minimize"></button>
+                        <button class="app-control-btn maximize" title="Maximize"></button>
+                        <div class="app-brand">Equalizer</div>
+                        <div class="drag-grip">⋮⋮</div>
+                    </div>
+                    <div class="app-window-content eq-content">
+                        <!-- Audio Effects Section -->
+                        <div class="eq-section">
+                            <h3>Audio Effects</h3>
+                            <div class="eq-controls">
+                                <div class="eq-control">
+                                    <label>Low-pass Filter</label>
+                                    <input type="range" id="lowpass-freq" min="200" max="8000" value="8000" class="eq-slider">
+                                    <span class="eq-value" id="lowpass-value">8000 Hz</span>
+                                </div>
+                                <div class="eq-control">
+                                    <label>High-pass Filter</label>
+                                    <input type="range" id="highpass-freq" min="20" max="2000" value="20" class="eq-slider">
+                                    <span class="eq-value" id="highpass-value">20 Hz</span>
+                                </div>
+                                <div class="eq-control">
+                                    <label>Compression</label>
+                                    <input type="range" id="compression" min="0" max="100" value="0" class="eq-slider">
+                                    <span class="eq-value" id="compression-value">0%</span>
+                                </div>
+                                <div class="eq-control">
+                                    <label>Distortion</label>
+                                    <input type="range" id="distortion" min="0" max="100" value="0" class="eq-slider">
+                                    <span class="eq-value" id="distortion-value">0%</span>
+                                </div>
+                                <div class="eq-control">
+                                    <label>Gain</label>
+                                    <input type="range" id="gain" min="0" max="200" value="100" class="eq-slider">
+                                    <span class="eq-value" id="gain-value">100%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Presets Section -->
+                        <div class="eq-section">
+                            <h3>Presets</h3>
+                            <div class="eq-presets">
+                                <button class="eq-preset-btn active" data-preset="normal">Normal</button>
+                                <button class="eq-preset-btn" data-preset="old-radio">Old Radio</button>
+                                <button class="eq-preset-btn" data-preset="telephone">Telephone</button>
+                                <button class="eq-preset-btn" data-preset="elevator">Elevator</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <style>
+                .eq-window-container {
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(145deg, 
+                        rgba(250, 245, 240, 0.98) 0%,
+                        var(--cream) 25%,
+                        var(--warm-cream) 75%,
+                        rgba(184, 179, 173, 0.4) 100%);
+                    border-radius: 28px;
+                    padding: 0;
+                    box-shadow: 
+                        0 12px 32px rgba(45, 42, 37, 0.3),
+                        inset 0 2px 6px rgba(255, 255, 255, 0.4),
+                        inset 0 -2px 6px rgba(184, 179, 173, 0.2);
+                    border: 2px solid rgba(255, 255, 255, 0.6);
+                    overflow: hidden;
+                }
+                
+                .eq-content {
+                    padding: 16px;
+                    height: calc(100% - 50px);
+                    overflow-y: auto;
+                }
+                
+                .eq-section {
+                    margin-bottom: 24px;
+                }
+                
+                .eq-section h3 {
+                    color: var(--warm-gray);
+                    font-size: 14px;
+                    font-weight: 600;
+                    margin: 0 0 12px 0;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                
+                .eq-controls {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+                
+                .eq-control {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 8px 12px;
+                    background: rgba(255, 255, 255, 0.3);
+                    border-radius: 12px;
+                    border: 1px solid rgba(255, 255, 255, 0.5);
+                    box-shadow: inset 0 1px 3px rgba(184, 179, 173, 0.2);
+                }
+                
+                .eq-control label {
+                    font-size: 12px;
+                    font-weight: 500;
+                    color: var(--warm-gray);
+                    min-width: 80px;
+                }
+                
+                .eq-slider {
+                    flex: 1;
+                    margin: 0 12px;
+                    -webkit-appearance: none;
+                    height: 4px;
+                    background: linear-gradient(90deg, 
+                        rgba(184, 179, 173, 0.3) 0%,
+                        rgba(255, 255, 255, 0.8) 100%);
+                    border-radius: 2px;
+                    outline: none;
+                }
+                
+                .eq-slider::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    width: 16px;
+                    height: 16px;
+                    background: linear-gradient(145deg, 
+                        rgba(250, 245, 240, 0.95) 0%,
+                        rgba(230, 225, 220, 0.8) 100%);
+                    border-radius: 50%;
+                    cursor: pointer;
+                    box-shadow: 
+                        0 2px 4px rgba(45, 42, 37, 0.2),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.6);
+                    border: 1px solid rgba(184, 179, 173, 0.3);
+                }
+                
+                .eq-value {
+                    font-size: 11px;
+                    color: var(--warm-gray);
+                    font-family: var(--font-mono);
+                    min-width: 50px;
+                    text-align: right;
+                }
+                
+                .eq-presets {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 8px;
+                }
+                
+                .eq-preset-btn {
+                    padding: 8px 12px;
+                    font-size: 12px;
+                    font-weight: 500;
+                    border: none;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    transition: all 0.15s ease;
+                    background: linear-gradient(145deg, 
+                        rgba(255, 255, 255, 0.6) 0%,
+                        rgba(240, 235, 230, 0.4) 100%);
+                    box-shadow: 
+                        0 2px 4px rgba(45, 42, 37, 0.1),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.5);
+                    border: 1px solid rgba(255, 255, 255, 0.6);
+                    color: var(--warm-gray);
+                }
+                
+                .eq-preset-btn:hover {
+                    background: linear-gradient(145deg, 
+                        rgba(255, 255, 255, 0.8) 0%,
+                        rgba(250, 245, 240, 0.6) 100%);
+                    transform: translateY(-1px);
+                    box-shadow: 
+                        0 4px 8px rgba(45, 42, 37, 0.15),
+                        inset 0 1px 3px rgba(255, 255, 255, 0.7);
+                }
+                
+                .eq-preset-btn.active {
+                    background: linear-gradient(145deg, 
+                        rgba(255, 107, 53, 0.8) 0%,
+                        rgba(255, 87, 34, 0.9) 100%);
+                    color: white;
+                    box-shadow: 
+                        0 3px 6px rgba(255, 107, 53, 0.3),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.3);
+                }
+                
+                .eq-preset-btn:active {
+                    transform: translateY(1px);
+                }
+            </style>
+        `;
+    }
+    
+    setupEQWindowControls(window) {
+        console.log('🎛️ Setting up EQ window-specific controls');
+        
+        // Only setup controls for this specific EQ window
+        const closeBtn = window.querySelector('.close');
+        const minimizeBtn = window.querySelector('.minimize');
+        const maximizeBtn = window.querySelector('.maximize');
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🎛️ EQ window close button clicked');
+                this.closeWindow(window.id);
+            });
+        }
+        
+        if (minimizeBtn) {
+            minimizeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🎛️ EQ window minimize button clicked');
+                this.minimizeWindow(window);
+            });
+        }
+        
+        if (maximizeBtn) {
+            maximizeBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('🎛️ EQ window maximize button clicked');
+                this.maximizeWindow(window);
+            });
+        }
+        
+        // Setup dragging for the EQ window
+        const dragHandle = window.querySelector('.drag-handle');
+        if (dragHandle) {
+            this.setupEQWindowDragging(window, dragHandle);
+        }
+    }
+    
+    setupEQWindowDragging(window, dragHandle) {
+        let isDragging = false;
+        let dragOffset = { x: 0, y: 0 };
+        
+        dragHandle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            isDragging = true;
+            const rect = window.getBoundingClientRect();
+            dragOffset.x = e.clientX - rect.left;
+            dragOffset.y = e.clientY - rect.top;
+            window.style.zIndex = ++this.windowZIndex;
+        });
+        
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                window.style.left = `${e.clientX - dragOffset.x}px`;
+                window.style.top = `${e.clientY - dragOffset.y}px`;
+            }
+        });
+        
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+    }
+    
+    initializeAudioContext() {
+        console.log('🎛️ Initializing Web Audio API for EQ');
+        
+        // Create audio context and EQ filters
+        if (!this.audioContext) {
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        // Create biquad filters for each frequency band
+        this.eqFilters = {
+            '60': this.audioContext.createBiquadFilter(),
+            '170': this.audioContext.createBiquadFilter(), 
+            '310': this.audioContext.createBiquadFilter(),
+            '600': this.audioContext.createBiquadFilter(),
+            '1000': this.audioContext.createBiquadFilter(),
+            '3000': this.audioContext.createBiquadFilter(),
+            '6000': this.audioContext.createBiquadFilter(),
+            '12000': this.audioContext.createBiquadFilter()
+        };
+        
+        // Configure filter frequencies
+        this.eqFilters['60'].frequency.value = 60;
+        this.eqFilters['170'].frequency.value = 170;
+        this.eqFilters['310'].frequency.value = 310;
+        this.eqFilters['600'].frequency.value = 600;
+        this.eqFilters['1000'].frequency.value = 1000;
+        this.eqFilters['3000'].frequency.value = 3000;
+        this.eqFilters['6000'].frequency.value = 6000;
+        this.eqFilters['12000'].frequency.value = 12000;
+        
+        // Set all filters to peaking type
+        Object.values(this.eqFilters).forEach(filter => {
+            filter.type = 'peaking';
+            filter.Q.value = 1;
+            filter.gain.value = 0;
+        });
+        
+        // Create compressor
+        this.compressor = this.audioContext.createDynamicsCompressor();
+        this.compressor.threshold.value = -24;
+        this.compressor.knee.value = 30;
+        this.compressor.ratio.value = 12;
+        this.compressor.attack.value = 0.003;
+        this.compressor.release.value = 0.25;
+        
+        // Create gain node for master volume
+        this.masterGain = this.audioContext.createGain();
+        this.masterGain.gain.value = 1.0;
+        
+        console.log('🎛️ Web Audio API EQ initialized');
+        console.log('⚠️  Note: YouTube IFrame API audio cannot be routed through Web Audio API due to CORS restrictions');
+        console.log('🎛️ EQ will control master volume via YouTube player, but frequency bands are for demonstration');
+    }
+    
+    connectAudioNodes(sourceNode) {
+        if (!this.eqFilters || !sourceNode) return sourceNode;
+        
+        // Chain all EQ filters
+        let currentNode = sourceNode;
+        Object.values(this.eqFilters).forEach(filter => {
+            currentNode.connect(filter);
+            currentNode = filter;
+        });
+        
+        // Connect to compressor and master gain
+        currentNode.connect(this.compressor);
+        this.compressor.connect(this.masterGain);
+        
+        return this.masterGain;
+    }
+
+    updateSliderHandle(slider, value) {
+        const container = slider.parentElement;
+        const handle = container.querySelector('.eq-slider-handle');
+        if (handle) {
+            // Convert value (-12 to +12) to position (0 to 164px from bottom)
+            const percentage = (value + 12) / 24; // Convert to 0-1 range
+            const position = 164 - (percentage * 164); // Invert for bottom-to-top
+            handle.style.top = `${8 + position}px`; // Add 8px offset for track top
+        }
+    }
+
+    setupEQControls() {
+        // Setup slider value updates and audio processing
+        const sliders = document.querySelectorAll('.eq-slider');
+        sliders.forEach(slider => {
+            const valueDisplay = document.getElementById(slider.id + '-value');
+            const frequency = slider.id.replace('eq-', '');
+            
+            if (valueDisplay) {
+                slider.addEventListener('input', () => {
+                    const value = parseFloat(slider.value);
+                    valueDisplay.textContent = `${value > 0 ? '+' : ''}${value}dB`;
+                    
+                    // Update visual slider handle position
+                    this.updateSliderHandle(slider, value);
+                    
+                    // Apply EQ filter gain in real-time
+                    if (this.eqFilters && this.eqFilters[frequency]) {
+                        this.eqFilters[frequency].gain.value = value;
+                        console.log(`🎛️ EQ ${frequency}Hz set to ${value}dB`);
+                    }
+                });
+                
+                // Initialize slider handle position
+                this.updateSliderHandle(slider, 0);
+            }
+        });
+        
+        // Setup master volume and compression controls
+        const masterVolume = document.getElementById('master-volume');
+        const compression = document.getElementById('compression');
+        
+        if (masterVolume) {
+            masterVolume.addEventListener('input', () => {
+                const value = masterVolume.value;
+                document.getElementById('master-volume-value').textContent = `${value}%`;
+                
+                // Apply to YouTube player volume
+                if (window.mp3Player && window.mp3Player.player && window.mp3Player.player.setVolume) {
+                    window.mp3Player.player.setVolume(value);
+                    window.mp3Player.volume = value;
+                }
+                
+                // Also apply to Web Audio master gain if available
+                if (this.masterGain) {
+                    this.masterGain.gain.value = value / 100;
+                }
+            });
+        }
+        
+        if (compression) {
+            compression.addEventListener('input', () => {
+                const value = compression.value;
+                document.getElementById('compression-value').textContent = `${value}%`;
+                
+                // Apply compression settings
+                if (this.compressor) {
+                    this.compressor.ratio.value = 1 + (value / 100) * 19; // 1-20 ratio
+                    this.compressor.threshold.value = -24 + (value / 100) * 20; // -24 to -4 dB
+                }
+            });
+        }
+        
+        // Setup preset buttons
+        const presetButtons = document.querySelectorAll('.eq-preset-btn');
+        presetButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                presetButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                this.applyEQPreset(button.dataset.preset);
+            });
+        });
+    }
+    
+    applyEQPreset(presetName) {
+        const presets = {
+            'normal': {
+                '60': 0, '170': 0, '310': 0, '600': 0, 
+                '1000': 0, '3000': 0, '6000': 0, '12000': 0
+            },
+            'old-radio': {
+                '60': -8, '170': -4, '310': 2, '600': 4,
+                '1000': 2, '3000': -2, '6000': -6, '12000': -8
+            },
+            'telephone': {
+                '60': -10, '170': -6, '310': 4, '600': 6,
+                '1000': 4, '3000': 2, '6000': -4, '12000': -8
+            },
+            'elevator': {
+                '60': -4, '170': -2, '310': 0, '600': 1,
+                '1000': 0, '3000': -1, '6000': -3, '12000': -5
+            }
+        };
+        
+        const preset = presets[presetName];
+        if (preset) {
+            // Apply preset values to sliders and filters
+            Object.keys(preset).forEach(frequency => {
+                const sliderId = `eq-${frequency}`;
+                const slider = document.getElementById(sliderId);
+                const valueDisplay = document.getElementById(sliderId + '-value');
+                const gainValue = preset[frequency];
+                
+                if (slider && valueDisplay) {
+                    slider.value = gainValue;
+                    valueDisplay.textContent = `${gainValue > 0 ? '+' : ''}${gainValue}dB`;
+                    
+                    // Update visual slider handle
+                    this.updateSliderHandle(slider, gainValue);
+                    
+                    // Apply to audio filter
+                    if (this.eqFilters && this.eqFilters[frequency]) {
+                        this.eqFilters[frequency].gain.value = gainValue;
+                    }
+                }
+            });
+            
+            console.log(`🎛️ Applied EQ preset: ${presetName}`);
+        }
+    }
+
+    // ===== TASK TRACKING & ACHIEVEMENTS =====
+
+    showAchievement(title, description, icon = '🎉') {
+        // Create achievement popup element
+        const popup = document.createElement('div');
+        popup.className = 'achievement-popup';
+        popup.innerHTML = `
+            <button class="app-control-btn close achievement-close-btn" title="Close" style="
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                width: 20px;
+                height: 20px;
+                min-width: 20px;
+                min-height: 20px;
+            "></button>
+            <div class="achievement-header">
+                <div class="achievement-icon">${icon}</div>
+                <div>
+                    <div class="achievement-title">${title}</div>
+                    <div class="achievement-subtitle">Achievement Unlocked</div>
+                </div>
+            </div>
+            <div class="achievement-description">${description}</div>
+        `;
+
+        document.body.appendChild(popup);
+        this.sounds.play('achievement');
+
+        // Show the popup
+        setTimeout(() => popup.classList.add('show'), 100);
+
+        // Auto-dismiss after 5 seconds
+        const autoDismiss = setTimeout(() => {
+            this.dismissAchievement(popup);
+        }, 5000);
+
+        // Manual dismiss on click
+        popup.addEventListener('click', () => {
+            clearTimeout(autoDismiss);
+            this.dismissAchievement(popup);
+        });
+
+        // Close button
+        popup.querySelector('.achievement-close-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            clearTimeout(autoDismiss);
+            this.dismissAchievement(popup);
+        });
+    }
+
+    dismissAchievement(popup) {
+        popup.classList.add('hide');
+        setTimeout(() => {
+            if (popup.parentNode) {
+                popup.parentNode.removeChild(popup);
+            }
+        }, 400);
+    }
+
+    completeTask(taskName) {
+        if (this.completedTasks.has(taskName)) return; // Already completed
+
+        this.completedTasks.add(taskName);
+        console.log(`✅ Task completed: ${taskName}`);
+
+        // Update UI
+        const taskItem = document.querySelector(`[data-task="${taskName}"]`);
+        if (taskItem) {
+            taskItem.classList.add('completed');
+        }
+
+        // Show achievement based on task
+        switch (taskName) {
+            case 'mp3-player':
+                this.showAchievement('WERE YOU RUSHING OR DRAGGING?', 'At least you found the MP3 player, the most important app.', '🎵');
+                break;
+            case 'notes':
+                this.showAchievement('Haiku-kinda', 'You opened the notes app!', '📝');
+                break;
+            case 'typing-radiohead':
+                this.showAchievement('#Vibes', 'Click clack + weird fishes = Music to my ears.', '🎸');
+                break;
+        }
+
+        this.sounds.play('achievement');
+    }
+
+    checkRadioheadPlaying() {
+        // Check if MP3 player is playing the Radiohead track
+        if (window.mp3Player && window.mp3Player.player) {
+            try {
+                const videoData = window.mp3Player.player.getVideoData();
+                const currentVideoId = videoData ? videoData.video_id : null;
+                const playerState = window.mp3Player.player.getPlayerState();
+                
+                // YouTube player state: 1 = playing
+                return currentVideoId === this.radioheadVideoId && playerState === 1;
+            } catch (error) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    trackTypingInNotes(editor) {
+        this.notesTextarea = editor;
+        let lastLength = 0;
+
+        const trackTyping = () => {
+            if (!this.notesTextarea) return;
+            
+            // Get text content length (not innerHTML length)
+            const currentLength = this.notesTextarea.textContent.length;
+            
+            if (currentLength > lastLength && this.checkRadioheadPlaying()) {
+                this.typingCharCount += (currentLength - lastLength);
+                console.log(`🎸 Typing while Radiohead: ${this.typingCharCount}/100 characters`);
+                
+                if (this.typingCharCount >= 100) {
+                    this.completeTask('typing-radiohead');
+                }
+            }
+            
+            lastLength = currentLength;
+        };
+
+        // Track typing
+        editor.addEventListener('input', trackTyping);
+        
+        // Check Radiohead status periodically
+        setInterval(() => {
+            if (this.notesTextarea && this.checkRadioheadPlaying()) {
+                this.isTypingWhileRadiohead = true;
+            } else {
+                this.isTypingWhileRadiohead = false;
+            }
+        }, 1000);
+    }
+    
+    applyAudioEffect(effectType, value) {
+        // In a real implementation, this would connect to the Web Audio API
+        // and apply the effects to the MP3 player's audio context
+        console.log(`Applied ${effectType}: ${value}`);
+        
+        // TODO: Integrate with MP3Player's Web Audio API context
+        // This would require modifying the MP3Player class to use Web Audio API
+        // instead of just the YouTube player for audio processing
     }
     
     handleWindowControl(window, action) {
@@ -1559,6 +3338,9 @@ class SoftOS {
     }
     
     closeWindow(windowId) {
+        console.log(`🚪 Closing window: ${windowId}`);
+        console.trace('Window close call stack');
+        
         this.sounds.play('windowClose');
         
         const window = this.windows.get(windowId);
@@ -1613,9 +3395,28 @@ class SoftOS {
             hour12: true
         });
         
+        const dateString = now.toLocaleDateString('en-US', {
+            weekday: 'long',
+            month: 'short',
+            day: 'numeric'
+        });
+        
+        // Update existing time element (if any)
         const timeElement = document.querySelector('.time');
         if (timeElement) {
             timeElement.textContent = timeString;
+        }
+        
+        // Update desktop time display
+        const desktopTimeElement = document.getElementById('desktop-time');
+        const desktopDateElement = document.getElementById('desktop-date');
+        
+        if (desktopTimeElement) {
+            desktopTimeElement.textContent = timeString;
+        }
+        
+        if (desktopDateElement) {
+            desktopDateElement.textContent = dateString;
         }
     }
     
@@ -1758,7 +3559,7 @@ class SoftOS {
     createTourContent() {
         return `
             <div style="height: 100%; display: flex; flex-direction: column; gap: 1rem;">
-                <h2 style="font-weight: 300; color: var(--primary-orange); margin-bottom: 0.5rem;">🎉 Welcome to Soft OS!</h2>
+                <h2 style="font-weight: 300; color: var(--primary-orange); margin-bottom: 0.5rem;">🎉 Welcome to KevOS!</h2>
                 
                 <div style="flex: 1; overflow-y: auto; padding-right: 0.5rem;">
                     <div style="margin-bottom: 1.5rem;">
@@ -1830,6 +3631,9 @@ class SoftOS {
         switch(appTitle) {
             case 'Calculator':
                 this.setupCalculator(windowElement);
+                break;
+            case 'Notes':
+                this.setupNotes(windowElement);
                 break;
             case 'Settings':
                 this.setupSettings(windowElement);
@@ -2013,25 +3817,37 @@ class SoftOS {
             });
         }
         
-        // Wire up integrated window controls
-        const closeBtn = windowElement.querySelector('.soundboard-close');
-        const minimizeBtn = windowElement.querySelector('.soundboard-minimize');
-        const maximizeBtn = windowElement.querySelector('.soundboard-maximize');
+        // Wire up integrated window controls with hover sounds
+        const closeBtn = windowElement.querySelector('.app-control-btn.close');
+        const minimizeBtn = windowElement.querySelector('.app-control-btn.minimize');
+        const maximizeBtn = windowElement.querySelector('.app-control-btn.maximize');
         
         if (closeBtn) {
+            closeBtn.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
             closeBtn.addEventListener('click', () => {
+                this.sounds.play('windowClose');
                 this.closeWindow(windowElement.id);
             });
         }
         
         if (minimizeBtn) {
+            minimizeBtn.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
             minimizeBtn.addEventListener('click', () => {
+                this.sounds.play('click');
                 this.minimizeWindow(windowElement);
             });
         }
         
         if (maximizeBtn) {
+            maximizeBtn.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
             maximizeBtn.addEventListener('click', () => {
+                this.sounds.play('click');
                 this.maximizeWindow(windowElement);
             });
         }
@@ -2219,25 +4035,48 @@ class SoftOS {
             console.error('MP3Player class not loaded');
         }
         
+        // Add hover sound effects to playback buttons
+        const playbackButtons = windowElement.querySelectorAll('.mp3-btn');
+        playbackButtons.forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
+            btn.addEventListener('click', () => {
+                this.sounds.play('click');
+            });
+        });
+        
         // Wire up integrated window controls
-        const closeBtn = windowElement.querySelector('.mp3-close');
-        const minimizeBtn = windowElement.querySelector('.mp3-minimize');
-        const maximizeBtn = windowElement.querySelector('.mp3-maximize');
+        const closeBtn = windowElement.querySelector('.app-control-btn.close');
+        const minimizeBtn = windowElement.querySelector('.app-control-btn.minimize');
+        const maximizeBtn = windowElement.querySelector('.app-control-btn.maximize');
         
         if (closeBtn) {
+            closeBtn.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
             closeBtn.addEventListener('click', () => {
+                this.sounds.play('windowClose');
                 this.closeWindow(windowElement.id);
             });
         }
         
         if (minimizeBtn) {
+            minimizeBtn.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
             minimizeBtn.addEventListener('click', () => {
+                this.sounds.play('click');
                 this.minimizeWindow(windowElement);
             });
         }
         
         if (maximizeBtn) {
+            maximizeBtn.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
             maximizeBtn.addEventListener('click', () => {
+                this.sounds.play('click');
                 this.maximizeWindow(windowElement);
             });
         }
@@ -2277,6 +4116,12 @@ document.head.appendChild(style);
 // Initialize the OS when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.softOS = new SoftOS();
+    
+    // Debug function to clear notes content (can be run in browser console)
+    window.clearNotesContent = function() {
+        localStorage.removeItem('kevOS-notes-content');
+        console.log('🗑️ Notes content cleared from localStorage');
+    };
     
     // Add global refresh function for soundboard
     window.softOS.refreshSoundboard = function() {

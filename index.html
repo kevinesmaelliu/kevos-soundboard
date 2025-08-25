@@ -7,146 +7,125 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Neuton:ital,wght@0,200;0,300;0,400;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Doto:wght@100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- kevOS Start Screen -->
+    <!-- kevOS Start Screen - Video + Enter Button -->
     <div class="kevos-start-screen" id="kevos-start">
+        <!-- Background Video -->
+        <div class="start-video-background">
+            <video autoplay loop muted playsinline>
+                <source src="assets/wallpapers/video.mp4" type="video/mp4">
+            </video>
+        </div>
+        
+        <!-- Terminal Window -->
         <div class="start-content">
-            <div class="start-logo">
-                <div class="logo-ring-static"></div>
-                <div class="logo-center-large">kev</div>
+            <div class="terminal-window">
+                <div class="terminal-header drag-handle">
+                    <div class="terminal-title">kevOS Terminal</div>
+                    <div class="drag-grip">⋮⋮</div>
+                </div>
+                <div class="terminal-content">
+                    <div id="terminal-output" class="terminal-output"><span class="terminal-cursor">█</span></div>
+                </div>
             </div>
-            <div class="start-text">
-                <div class="kevos-title-large">kevOS</div>
-                <div class="start-subtitle">A warm, tactile computing experience</div>
-                <div class="start-description">Click to begin your journey</div>
-            </div>
-            <button id="start-kevos" class="start-button">
-                <span class="start-button-text">Start kevOS</span>
-                <div class="start-button-glow"></div>
-            </button>
         </div>
     </div>
 
-    <!-- kevOS Launch Screen (hidden initially) -->
+    <!-- kevOS Launch Screen - Video + Loading Bar Only -->
     <div class="kevos-launch-screen" id="kevos-launch" style="display: none;">
+        <!-- Background Video -->
+        <div class="launch-video-background">
+            <video autoplay loop muted playsinline>
+                <source src="assets/wallpapers/video.mp4" type="video/mp4">
+            </video>
+        </div>
+        
+        <!-- Loading Bar Only -->
         <div class="launch-content">
-            <div class="launch-logo">
-                <div class="logo-ring"></div>
-                <div class="logo-center">kev</div>
-            </div>
-            <div class="launch-text">
-                <div class="kevos-title">kevOS</div>
-                <div class="launch-subtitle">A warm, tactile computing experience</div>
-            </div>
             <div class="launch-progress">
                 <div class="progress-bar">
                     <div class="progress-fill"></div>
                 </div>
-                <div class="launch-status">Initializing...</div>
-                <button id="skip-launch" style="margin-top: 1rem; padding: 0.5rem 1rem; background: rgba(255,107,53,0.2); border: 1px solid var(--primary-orange); color: var(--cream); border-radius: 6px; cursor: pointer; font-family: var(--font-system); font-size: 12px;">Skip Launch (Debug)</button>
             </div>
         </div>
     </div>
 
     <div class="desktop" style="display: none;">
-        <div class="taskbar">
-            <div class="taskbar-left">
-                <div class="logo">
-                    <div class="logo-icon"></div>
-                    <span>kevOS</span>
-                </div>
-                <div class="app-menu">
-                    <div class="menu-item-container">
-                        <button class="menu-item" data-menu="files">Files</button>
-                        <div class="dropdown-menu" id="files-dropdown">
-                            <div class="dropdown-item" data-action="open-finder">Open Finder</div>
-                            <div class="dropdown-item" data-action="recent-files">Recent Files</div>
-                            <div class="dropdown-divider"></div>
-                            <div class="dropdown-item" data-action="new-folder">New Folder</div>
-                        </div>
-                    </div>
-                    <div class="menu-item-container">
-                        <button class="menu-item" data-menu="system">System</button>
-                        <div class="dropdown-menu" id="system-dropdown">
-                            <div class="dropdown-item" data-action="open-settings">System Preferences</div>
-                            <div class="dropdown-item" data-action="about">About kevOS</div>
-                            <div class="dropdown-divider"></div>
-                            <div class="dropdown-item" data-action="restart">Restart</div>
-                            <div class="dropdown-item" data-action="shutdown">Shut Down</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="taskbar-right">
-                <div class="system-info">
-                    <span class="time">2:34 PM</span>
-                    <div class="battery"></div>
-                </div>
-            </div>
+        <!-- Video Animation Background -->
+        <div class="webgl-background">
+            <video autoplay loop muted playsinline>
+                <source src="assets/wallpapers/video.mp4" type="video/mp4">
+            </video>
         </div>
 
         <div class="desktop-content">
+            <!-- Time Display -->
+            <div class="desktop-time-display">
+                <div class="desktop-date" id="desktop-date">Sunday, Aug 25</div>
+                <div class="desktop-time" id="desktop-time">10:38 PM</div>
+            </div>
+            
             <!-- Desktop Icons -->
             <div class="desktop-icons">
-                <div class="desktop-icon" data-app="soundboard">
-                    <div class="desktop-icon-image soundboard-icon"></div>
-                    <div class="desktop-icon-label">Soundboard</div>
-                </div>
                 <div class="desktop-icon" data-app="mp3player">
-                    <div class="desktop-icon-image mp3player-icon"></div>
+                    <div class="app-icon-button"></div>
                     <div class="desktop-icon-label">MP3 Player</div>
+                </div>
+                <div class="desktop-icon" data-app="notes">
+                    <div class="app-icon-button"></div>
+                    <div class="desktop-icon-label">Notes</div>
                 </div>
             </div>
             
-            <div class="dock">
-                <div class="dock-item" data-app="finder">
-                    <div class="dock-icon finder-icon"></div>
-                </div>
-                <div class="dock-item" data-app="notes">
-                    <div class="dock-icon notes-icon"></div>
-                </div>
-                <div class="dock-item" data-app="calculator">
-                    <div class="dock-icon calc-icon"></div>
-                </div>
-                <div class="dock-item" data-app="settings">
-                    <div class="dock-icon settings-icon"></div>
-                </div>
-                <div class="dock-item" data-app="mp3player">
-                    <div class="dock-icon mp3-icon"></div>
-                </div>
-            </div>
 
             <div class="windows-container">
                 <div class="window" id="welcome-window">
-                    <div class="window-header">
-                        <div class="window-controls">
-                            <button class="control-btn close"></button>
-                            <button class="control-btn minimize"></button>
-                            <button class="control-btn maximize"></button>
+                    <div class="app-window-container">
+                        <div class="app-window-header drag-handle">
+                            <button class="app-control-btn close" title="Close"></button>
+                            <button class="app-control-btn minimize" title="Minimize"></button>
+                            <button class="app-control-btn maximize" title="Maximize"></button>
+                            <div class="app-brand">Welcome</div>
+                            <div class="drag-grip">⋮⋮</div>
                         </div>
-                        <div class="window-title">Welcome</div>
-                    </div>
-                    <div class="window-content">
-                        <h2>Welcome to kevOS</h2>
-                        <p>A tactile, warm computing experience inspired by the golden age of personal computing.</p>
-                        <button class="soft-button primary" onclick="window.softOS.getStarted()">Get Started</button>
-                    </div>
-                </div>
-                
-                <div class="window soundboard-window" id="soundboard-window" style="display: none;">
-                    <div class="window-header">
-                        <div class="window-controls">
-                            <button class="control-btn close" onclick="window.softOS.closeWindow('soundboard-window')"></button>
-                            <button class="control-btn minimize"></button>
-                            <button class="control-btn maximize"></button>
-                        </div>
-                        <div class="window-title">Soundboard</div>
-                    </div>
-                    <div class="window-content soundboard-content">
-                        <div class="soundboard-grid" id="soundboard-grid">
-                            <!-- Sound buttons will be generated here -->
+                        <div class="app-window-content">
+                            <h2>Get Started with KevOS</h2>
+                            <p>KevOS is an "operating system" sandbox made with claude code + cursor for Kevin to code, test, and share his random silly ideas. Have fun and check in once in a while to see what's new!</p>
+                            
+                            <div class="task-checklist">
+                                <div class="task-item" data-task="mp3-player">
+                                    <div class="task-checkbox">
+                                        <div class="checkbox-mark"></div>
+                                    </div>
+                                    <div class="task-content">
+                                        <div class="task-title">Open MP3 Player</div>
+                                        <div class="task-description">Click the desktop icon to launch the music player</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="task-item" data-task="notes">
+                                    <div class="task-checkbox">
+                                        <div class="checkbox-mark"></div>
+                                    </div>
+                                    <div class="task-content">
+                                        <div class="task-title">Open Notes</div>
+                                        <div class="task-description">Launch the notes app from the desktop</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="task-item" data-task="typing-radiohead">
+                                    <div class="task-checkbox">
+                                        <div class="checkbox-mark"></div>
+                                    </div>
+                                    <div class="task-content">
+                                        <div class="task-title">Type 100 Characters While Listening to Radiohead</div>
+                                        <div class="task-description">Type in notes while the Radiohead song is playing</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
