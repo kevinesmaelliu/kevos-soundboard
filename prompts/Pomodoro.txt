@@ -1,0 +1,108 @@
+# Build a Motivational Pomodoro Timer App for kevOS
+
+## Project Overview
+Create a productivity companion app called "Pomodoro" that combines a pomodoro timer with an encouraging, motivational personality system. This should feel like having a supportive coding buddy who keeps you motivated throughout work sessions.
+
+## CRITICAL REQUIREMENT: Use Existing Window Component
+**MUST USE**: kevOS has an existing Window component that ALL apps use for consistency. Do NOT create custom window chrome or decorations. Use the existing Window component as the container for the entire app interface.
+
+## Core Functionality Requirements
+
+### Timer System
+- **Standard Pomodoro**: 25-minute work sessions, 5-minute short breaks, 15-minute long breaks
+- **Customizable intervals**: Allow users to adjust work/break durations
+- **Visual countdown**: Clean, readable timer display with progress ring/bar
+- **Audio notifications**: Subtle chimes for session start/end (not jarring)
+- **Pause/resume capability**: Handle interruptions gracefully
+
+### Motivational Buddy System
+- **Dynamic messaging**: Context-aware encouragement that changes based on:
+  - Session number (1st session vs 6th session of day)
+  - Time of day (energetic morning vs supportive afternoon)
+  - Streak progress (celebrating consistency)
+- **Personality traits**: Friendly, supportive, occasionally playful but never annoying
+- **Pre-session setup**: "What are we working on today?" goal-setting prompt
+- **Break suggestions**: Encourage healthy activities during breaks
+
+### UI/UX Design Principles
+- **kevOS integration**: Match the existing OS design language and color scheme
+- **Non-intrusive**: Should support focus, not demand attention
+- **Accessibility**: Clear typography, good contrast, keyboard navigation
+- **Responsive**: Work well at different window sizes
+
+## Technical Implementation
+
+### State Management
+- Use React hooks (useState, useEffect, useContext) for timer state
+- Implement proper cleanup for intervals/timeouts
+- Handle background/foreground state changes
+
+### Data Persistence
+- **Local storage**: Save user preferences, session history, streak data
+- **Session tracking**: Store completed sessions with timestamps and goals
+- **Settings**: Timer durations, notification preferences, buddy personality level
+
+### Performance Considerations
+- Efficient timer implementation (avoid unnecessary re-renders)
+- Proper cleanup of intervals when component unmounts
+- Lazy load motivational messages to avoid memory bloat
+
+## Feature Specifications
+
+### Must-Have Features
+1. **Timer Display**: Large, clear countdown with progress indicator
+2. **Session Controls**: Start, pause, resume, skip, reset
+3. **Break Management**: Automatic transition between work/break with user confirmation
+4. **Basic Statistics**: Today's completed sessions, current streak
+5. **Settings Panel**: Customize intervals and notification preferences
+
+### Should-Have Features
+1. **Goal Setting**: Quick text input for session objectives
+2. **Progress Visualization**: Simple daily/weekly session count charts
+3. **Motivational Quotes**: Rotating encouraging messages
+4. **Session History**: Last 7 days of completed sessions
+
+### Could-Have Features (Future Iterations)
+1. **Achievement System**: Unlock badges for consistency milestones
+2. **Integration Hooks**: Connect with task management or calendar apps
+3. **Ambient Sounds**: Optional background noise during work sessions
+
+## Example User Flows
+
+### Starting a Session
+1. User opens FocusBuddy app
+2. App greets: "Ready to tackle some great work? What's on the agenda?"
+3. User optionally sets a goal
+4. Timer starts with encouraging message: "Let's make these 25 minutes count!"
+
+### During Work Session
+- Timer counts down with subtle progress indicator
+- No interruptions or popups during focus time
+- Status shows current session number and time remaining
+
+### Break Time
+- Gentle notification: "Great focus! Time for a well-deserved break."
+- Suggests break activities: "How about some stretches or fresh air?"
+- Shows mini celebration for completed session
+
+## Code Organization
+- **Components**: Timer, Controls, Statistics, Settings, MotivationalMessages
+- **Hooks**: useTimer, usePersistence, useMotivationalSystem
+- **Utils**: timeFormatting, messageGeneration, statisticsCalculation
+- **Constants**: Default settings, message templates, achievement thresholds
+
+## Testing Considerations
+- Test timer accuracy across different browser conditions
+- Verify state persistence across app restarts
+- Test accessibility with keyboard-only navigation
+- Validate responsive behavior at different window sizes
+
+## Success Metrics
+- Timer accuracy (within 1 second over 25 minutes)
+- Zero crashes during normal usage
+- Positive user feedback on motivational messaging
+- Seamless integration with kevOS window system
+
+---
+
+**Remember**: This app should feel like a supportive companion, not just another timer. The personality system is what differentiates it from basic pomodoro apps. Focus on creating genuine encouragement that adapts to the user's work patterns and energy levels throughout the day.

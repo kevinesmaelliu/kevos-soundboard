@@ -120,11 +120,11 @@ class SoftOS {
             { text: 'All systems nominal.\n\n', delay: 100 },
             { text: '> Detecting audio hardware... [OK]\n', delay: 300 },
             { text: '> Initializing sound drivers... [OK]\n', delay: 200 },
-            { text: '> Dilly-Dallying... [OK]\n', delay: 400 },
-            { text: '> Injecting crypto miner... [ACTIVE]\n', delay: 1500 },
-            { text: '> Jk. [lol]\n', delay: 500 },
+            { text: '> Dilly-Dallying... [OK]\n', delay: 200 },
+            { text: '> Injecting crypto miner... [ACTIVE]\n', delay: 300 },
+            { text: '> Jk. [lol]\n', delay: 300 },
             { text: '> Checking for signs of intelligent life... [TIMEOUT]\n', delay: 1000 },
-            { text: '> Anomaly "meow" detected... [???]\n', delay: 800 },
+            { text: '> Anomaly "meow" detected... [???]\n', delay: 400 },
             { text: '  /\\_/\\\n', delay: 100 },
             { text: '  ( o.o )\n', delay: 100 },
             { text: '  > ^ <\n\n', delay: 100 },
@@ -1079,6 +1079,13 @@ class SoftOS {
                 width: '360px',
                 height: '560px',
                 customWindow: true
+            },
+            pomodoro: {
+                title: 'Pomodoro Timer',
+                content: this.createPomodoroContent(),
+                width: '400px',
+                height: 'auto',
+                customWindow: true
             }
         };
         
@@ -1288,6 +1295,71 @@ class SoftOS {
         console.log('🎛️ EQ window setup complete');
         this.sounds.play('windowOpen');
     }
+
+    openPomodoroSettingsWindow() {
+        console.log('⚙️ openPomodoroSettingsWindow() called!');
+        console.log('⚙️ Opening Pomodoro Settings window...');
+        console.log('⚙️ this context:', this);
+        
+        try {
+            // Check if settings window is already open
+            const existingSettings = document.getElementById('pomodoro-settings-window');
+            if (existingSettings) {
+                console.log('⚙️ Settings window already exists, removing and recreating');
+                existingSettings.remove();
+                this.windows.delete('pomodoro-settings-window');
+            }
+        } catch (error) {
+            console.error('⚙️ ERROR in openPomodoroSettingsWindow:', error);
+            throw error;
+        }
+        
+        // Create settings window
+        const windowId = 'pomodoro-settings-window';
+        const window = document.createElement('div');
+        window.className = 'window pomodoro-settings-window-simple';
+        window.id = windowId;
+        
+        // Find Pomodoro timer window for positioning
+        const pomodoroWindow = document.querySelector('.pomodoro-app')?.closest('.window');
+        let left = '50%';
+        let top = '50%';
+        let transform = 'translate(-50%, -50%)';
+        
+        if (pomodoroWindow) {
+            const pomodoroRect = pomodoroWindow.getBoundingClientRect();
+            left = `${Math.max(10, pomodoroRect.right + 10)}px`;
+            top = `${Math.max(10, pomodoroRect.top)}px`;
+            transform = 'none';
+            console.log('⚙️ Positioning Settings window relative to Pomodoro timer');
+        }
+        
+        window.style.left = left;
+        window.style.top = top;
+        window.style.transform = transform;
+        window.style.width = '320px';
+        window.style.height = '280px';
+        window.style.zIndex = ++this.windowZIndex;
+        
+        // Create the settings content
+        window.innerHTML = this.createPomodoroSettingsContent();
+        
+        // Add to DOM and register
+        document.querySelector('.windows-container').appendChild(window);
+        this.windows.set(windowId, window);
+        
+        // Setup interactions
+        this.setupWindowControls();
+        this.setupPomodoroSettingsWindow(window);
+        
+        // Show window
+        setTimeout(() => {
+            window.classList.add('show');
+        }, 10);
+        
+        console.log('⚙️ Pomodoro Settings window setup complete');
+        this.sounds.play('windowOpen');
+    }
     
     createWindow(config) {
         this.sounds.play('windowOpen');
@@ -1297,7 +1369,12 @@ class SoftOS {
         window.className = 'window';
         window.id = windowId;
         window.style.width = config.width;
-        window.style.height = config.height;
+        if (config.height === 'auto') {
+            window.style.height = 'auto';
+            window.style.minHeight = '400px';
+        } else {
+            window.style.height = config.height;
+        }
         window.style.zIndex = ++this.windowZIndex;
         
         // Calculate offset for cascading windows  
@@ -2696,6 +2773,796 @@ class SoftOS {
         `;
     }
     
+    createPomodoroContent() {
+        return `
+            <div class="pomodoro-app">
+                <div class="app-window-header drag-handle">
+                    <button class="app-control-btn close" title="Close"></button>
+                    <button class="app-control-btn minimize" title="Minimize"></button>
+                    <button class="app-control-btn maximize" title="Maximize"></button>
+                    <div class="app-brand">Pomodoro Timer</div>
+                    <div class="drag-grip">⋮⋮</div>
+                </div>
+                
+                <div class="pomodoro-content">
+                    <!-- Digital Clock Display -->
+                    <div class="digital-clock-container">
+                        <div class="digital-clock-frame">
+                            <div class="digital-clock-screen">
+                                <div class="lcd-display">
+                                    <div class="timer-time" id="timer-time">25:00</div>
+                                    <div class="session-indicator">
+                                        <span class="session-type" id="session-type">WORK SESSION</span>
+                                        <span class="session-count" id="session-count">1/4</span>
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div class="progress-bar-bg">
+                                            <div class="progress-bar-fill" id="progress-bar"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Control Buttons on Screen Bevel -->
+                            <div class="screen-controls">
+                                <button class="screen-btn primary" id="start-pause-btn">START</button>
+                                <button class="screen-btn" id="reset-btn">RESET</button>
+                                <button class="screen-btn" id="skip-btn">SKIP</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Settings Button -->
+                    <div class="settings-button-container">
+                        <button class="settings-open-btn" id="settings-open-btn">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <!-- Goal Setting -->
+                    <div class="goal-container">
+                        <input type="text" class="goal-input" id="goal-input" placeholder="What are we working on next?">
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <style>
+                .pomodoro-app {
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(145deg, 
+                        rgba(250, 245, 240, 0.98) 0%,
+                        var(--cream) 25%,
+                        var(--warm-cream) 75%,
+                        rgba(184, 179, 173, 0.4) 100%);
+                    border-radius: 20px;
+                    overflow-x: hidden;
+                    overflow-y: auto;
+                    font-family: var(--font-main);
+                }
+                
+                .pomodoro-content {
+                    padding: 40px 30px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 25px;
+                    height: auto;
+                    overflow: visible;
+                    position: relative;
+                }
+                
+                /* Digital Clock Container */
+                .digital-clock-container {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 15px;
+                }
+                
+                .digital-clock-frame {
+                    background: linear-gradient(145deg, 
+                        rgba(45, 42, 37, 0.9) 0%,
+                        rgba(30, 28, 25, 0.95) 50%,
+                        rgba(20, 18, 16, 1) 100%);
+                    border-radius: 24px;
+                    padding: 18px;
+                    box-shadow: 
+                        0 15px 40px rgba(0, 0, 0, 0.4),
+                        inset 0 3px 8px rgba(255, 255, 255, 0.1),
+                        inset 0 -3px 8px rgba(0, 0, 0, 0.4);
+                    border: 3px solid rgba(45, 42, 37, 0.8);
+                    position: relative;
+                }
+                
+                .digital-clock-screen {
+                    background: linear-gradient(145deg, 
+                        rgba(15, 15, 15, 1) 0%,
+                        rgba(10, 10, 10, 1) 50%,
+                        rgba(5, 5, 5, 1) 100%);
+                    border-radius: 20px;
+                    padding: 6px;
+                    box-shadow: 
+                        inset 0 4px 12px rgba(0, 0, 0, 0.8),
+                        inset 0 -2px 8px rgba(0, 0, 0, 0.6);
+                    border: 2px solid rgba(30, 28, 25, 0.6);
+                    position: relative;
+                }
+                
+                .digital-clock-screen::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: radial-gradient(
+                        ellipse at center,
+                        rgba(250, 245, 240, 0.02) 0%,
+                        rgba(250, 245, 240, 0.01) 50%,
+                        transparent 100%
+                    );
+                    border-radius: 18px;
+                    pointer-events: none;
+                }
+                
+                .lcd-display {
+                    background: linear-gradient(145deg, 
+                        rgba(25, 25, 25, 1) 0%,
+                        rgba(15, 15, 15, 1) 50%,
+                        rgba(10, 10, 10, 1) 100%);
+                    border-radius: 16px;
+                    padding: 20px 18px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 18px;
+                    min-width: 260px;
+                    box-shadow: 
+                        inset 0 3px 8px rgba(0, 0, 0, 0.6),
+                        inset 0 -1px 4px rgba(250, 245, 240, 0.05);
+                    border: 1px solid rgba(45, 42, 37, 0.4);
+                    position: relative;
+                    overflow: hidden;
+                }
+                
+                .lcd-display::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    height: 2px;
+                    background: linear-gradient(90deg, 
+                        transparent 0%,
+                        rgba(250, 245, 240, 0.1) 50%,
+                        transparent 100%
+                    );
+                }
+                
+                .timer-time {
+                    font-family: var(--font-pixel);
+                    font-size: 3.5em;
+                    font-weight: 500;
+                    color: var(--orange);
+                    text-shadow: 
+                        0 2px 4px rgba(255, 87, 34, 0.3),
+                        0 1px 2px rgba(255, 255, 255, 0.8);
+                    letter-spacing: 3px;
+                    margin: 0;
+                    text-align: center;
+                }
+                
+                .session-indicator {
+                    display: flex;
+                    justify-content: space-between;
+                    width: 100%;
+                    font-family: var(--font-main);
+                    font-size: 0.95em;
+                    color: var(--warm-gray);
+                    font-weight: 600;
+                    opacity: 0.8;
+                }
+                
+                .progress-bar-container {
+                    width: 100%;
+                    margin-top: 8px;
+                }
+                
+                .progress-bar-bg {
+                    width: 100%;
+                    height: 8px;
+                    background: linear-gradient(145deg, 
+                        rgba(184, 179, 173, 0.3) 0%,
+                        rgba(200, 195, 190, 0.4) 100%);
+                    border-radius: 4px;
+                    overflow: hidden;
+                    box-shadow: 
+                        inset 0 2px 4px rgba(184, 179, 173, 0.4),
+                        inset 0 -1px 2px rgba(255, 255, 255, 0.6);
+                    border: 1px solid rgba(184, 179, 173, 0.2);
+                }
+                
+                .progress-bar-fill {
+                    height: 100%;
+                    background: var(--orange);
+                    border-radius: 3px;
+                    transition: width 1s ease;
+                    width: 0%;
+                    box-shadow: 
+                        0 0 8px rgba(255, 107, 53, 0.6),
+                        0 1px 3px rgba(255, 87, 34, 0.4),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.4);
+                }
+                
+                /* Screen Controls on Bevel */
+                .screen-controls {
+                    position: absolute;
+                    bottom: 2px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    display: flex;
+                    gap: 3px;
+                    z-index: 50;
+                    pointer-events: auto;
+                }
+                
+                .screen-btn {
+                    padding: 4px 10px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    transition: all 0.15s ease;
+                    font-family: var(--font-main);
+                    font-size: 8px;
+                    font-weight: 600;
+                    letter-spacing: 0.3px;
+                    background: linear-gradient(145deg, 
+                        rgba(45, 42, 37, 0.9) 0%, 
+                        rgba(35, 32, 29, 0.95) 50%, 
+                        rgba(25, 22, 19, 1) 100%);
+                    color: rgba(250, 245, 240, 0.8);
+                    box-shadow: 
+                        0 1px 3px rgba(0, 0, 0, 0.3),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.1),
+                        inset 0 -1px 1px rgba(0, 0, 0, 0.3);
+                    border: 1px solid rgba(60, 57, 54, 0.8);
+                    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
+                    min-width: 28px;
+                    height: 18px;
+                    pointer-events: auto;
+                }
+                
+                .screen-btn:hover {
+                    background: linear-gradient(145deg, 
+                        rgba(55, 52, 49, 0.9) 0%, 
+                        rgba(45, 42, 39, 0.95) 50%, 
+                        rgba(35, 32, 29, 1) 100%);
+                    color: rgba(250, 245, 240, 0.9);
+                    transform: translateY(-1px);
+                    box-shadow: 
+                        0 3px 8px rgba(0, 0, 0, 0.4),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.15),
+                        inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+                }
+                
+                .screen-btn:active {
+                    transform: translateY(1px);
+                    box-shadow: 
+                        0 1px 3px rgba(0, 0, 0, 0.4),
+                        inset 0 2px 4px rgba(0, 0, 0, 0.4),
+                        inset 0 -1px 2px rgba(255, 255, 255, 0.1);
+                }
+                
+                .screen-btn.primary {
+                    background: linear-gradient(145deg, 
+                        var(--orange) 0%, 
+                        rgba(255, 87, 34, 0.9) 50%, 
+                        rgba(230, 74, 25, 1) 100%);
+                    color: white;
+                    font-size: 7px;
+                    font-weight: 700;
+                    padding: 3px 8px;
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    box-shadow: 
+                        0 1px 4px rgba(255, 87, 34, 0.3),
+                        inset 0 1px 1px rgba(255, 255, 255, 0.3),
+                        inset 0 -1px 1px rgba(0, 0, 0, 0.2);
+                    min-width: 30px;
+                }
+                
+                .screen-btn.primary:hover {
+                    background: linear-gradient(145deg, 
+                        rgba(255, 107, 53, 1) 0%, 
+                        var(--orange) 50%, 
+                        rgba(255, 87, 34, 0.9) 100%);
+                    transform: translateY(-1px);
+                    box-shadow: 
+                        0 4px 10px rgba(255, 87, 34, 0.4),
+                        inset 0 1px 2px rgba(255, 255, 255, 0.4),
+                        inset 0 -1px 2px rgba(0, 0, 0, 0.2);
+                }
+                
+                .screen-btn.primary:active {
+                    transform: translateY(1px);
+                    box-shadow: 
+                        0 2px 5px rgba(255, 87, 34, 0.3),
+                        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+                        inset 0 -1px 2px rgba(255, 255, 255, 0.2);
+                }
+                
+                /* Settings Button */
+                .settings-button-container {
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    z-index: 20;
+                }
+                
+                .settings-open-btn {
+                    width: 32px;
+                    height: 32px;
+                    border: none;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    transition: all 0.15s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: linear-gradient(145deg, 
+                        rgba(255, 255, 255, 0.8) 0%, 
+                        rgba(240, 235, 230, 0.6) 50%, 
+                        rgba(220, 215, 210, 0.5) 100%);
+                    color: var(--warm-gray);
+                    box-shadow: 
+                        0 2px 6px rgba(45, 42, 37, 0.1),
+                        inset 0 1px 3px rgba(255, 255, 255, 0.7),
+                        inset 0 -1px 3px rgba(184, 179, 173, 0.2);
+                    border: 1px solid rgba(255, 255, 255, 0.6);
+                    pointer-events: auto;
+                    z-index: 100;
+                }
+                
+                .settings-open-btn:hover {
+                    transform: translateY(-1px);
+                    background: linear-gradient(145deg, 
+                        rgba(255, 255, 255, 0.9) 0%, 
+                        rgba(250, 245, 240, 0.7) 50%, 
+                        rgba(240, 235, 230, 0.6) 100%);
+                    box-shadow: 
+                        0 4px 10px rgba(45, 42, 37, 0.15),
+                        inset 0 1px 3px rgba(255, 255, 255, 0.8),
+                        inset 0 -1px 3px rgba(184, 179, 173, 0.2);
+                }
+                
+                .settings-open-btn:active {
+                    transform: translateY(1px);
+                    box-shadow: 
+                        0 1px 4px rgba(45, 42, 37, 0.2),
+                        inset 0 2px 6px rgba(184, 179, 173, 0.3),
+                        inset 0 -1px 2px rgba(255, 255, 255, 0.5);
+                }
+                
+                /* Goal Container */
+                .goal-container {
+                    width: 100%;
+                    max-width: 320px;
+                }
+                
+                .goal-input {
+                    width: 100%;
+                    padding: 12px 16px;
+                    border: 2px solid rgba(184, 179, 173, 0.3);
+                    border-radius: 12px;
+                    font-size: 14px;
+                    background: linear-gradient(145deg, #fff, #f8f8f8);
+                    color: var(--warm-gray);
+                    box-shadow: 
+                        inset 0 2px 6px rgba(0, 0, 0, 0.1),
+                        0 1px 3px rgba(255, 255, 255, 0.8);
+                    outline: none;
+                    transition: all 0.2s ease;
+                    font-family: var(--font-main);
+                }
+                
+                .goal-input:focus {
+                    border-color: var(--orange);
+                    box-shadow: 
+                        inset 0 2px 6px rgba(0, 0, 0, 0.1),
+                        0 0 12px rgba(255, 107, 53, 0.3);
+                    background: white;
+                }
+                
+            </style>
+        `;
+    }
+    
+    createPomodoroSettingsContent() {
+        return `
+            <div class="app-window-container">
+                <div class="app-window-header drag-handle">
+                    <button class="app-control-btn close" title="Close"></button>
+                    <button class="app-control-btn minimize" title="Minimize"></button>
+                    <button class="app-control-btn maximize" title="Maximize"></button>
+                    <div class="app-brand">⚙️ Timer Settings</div>
+                    <div class="drag-grip">⋮⋮</div>
+                </div>
+                <div class="app-window-content settings-window-content">
+                    <div class="settings-grid">
+                        <div class="setting-group">
+                            <label class="setting-label">WORK SESSION</label>
+                            <div class="setting-control">
+                                <button class="setting-btn decrease" data-target="work-duration">−</button>
+                                <input type="number" id="work-duration" value="25" min="1" max="60" class="setting-input">
+                                <button class="setting-btn increase" data-target="work-duration">+</button>
+                            </div>
+                            <span class="setting-unit">min</span>
+                        </div>
+                        <div class="setting-group">
+                            <label class="setting-label">SHORT BREAK</label>
+                            <div class="setting-control">
+                                <button class="setting-btn decrease" data-target="short-break">−</button>
+                                <input type="number" id="short-break" value="5" min="1" max="30" class="setting-input">
+                                <button class="setting-btn increase" data-target="short-break">+</button>
+                            </div>
+                            <span class="setting-unit">min</span>
+                        </div>
+                        <div class="setting-group">
+                            <label class="setting-label">LONG BREAK</label>
+                            <div class="setting-control">
+                                <button class="setting-btn decrease" data-target="long-break">−</button>
+                                <input type="number" id="long-break" value="15" min="1" max="60" class="setting-input">
+                                <button class="setting-btn increase" data-target="long-break">+</button>
+                            </div>
+                            <span class="setting-unit">min</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <style>
+                .settings-window-content {
+                    padding: 20px;
+                }
+                
+                .settings-grid {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                }
+                
+                .setting-group {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 15px;
+                }
+                
+                .setting-label {
+                    font-size: 11px;
+                    font-weight: 700;
+                    color: var(--warm-gray);
+                    letter-spacing: 0.5px;
+                    opacity: 0.8;
+                    min-width: 90px;
+                    text-align: left;
+                }
+                
+                .setting-control {
+                    display: flex;
+                    align-items: center;
+                    gap: 0;
+                    border-radius: 8px;
+                    overflow: hidden;
+                    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+                }
+                
+                .setting-btn {
+                    width: 28px;
+                    height: 32px;
+                    border: none;
+                    background: linear-gradient(145deg, 
+                        #f5f5f5 0%, 
+                        #e8e8e8 50%, 
+                        #d0d0d0 100%);
+                    color: var(--warm-gray);
+                    font-size: 16px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: all 0.15s ease;
+                    box-shadow: 
+                        inset 0 1px 3px rgba(255, 255, 255, 0.8),
+                        inset 0 -1px 3px rgba(0, 0, 0, 0.1);
+                    border-right: 1px solid rgba(184, 179, 173, 0.3);
+                    user-select: none;
+                }
+                
+                .setting-btn:last-child {
+                    border-right: none;
+                    border-left: 1px solid rgba(184, 179, 173, 0.3);
+                }
+                
+                .setting-btn:hover {
+                    background: linear-gradient(145deg, 
+                        #ffffff 0%, 
+                        #f0f0f0 50%, 
+                        #e0e0e0 100%);
+                    box-shadow: 
+                        inset 0 1px 3px rgba(255, 255, 255, 0.9),
+                        inset 0 -1px 3px rgba(0, 0, 0, 0.1);
+                }
+                
+                .setting-btn:active {
+                    background: linear-gradient(145deg, 
+                        #d0d0d0 0%, 
+                        #e8e8e8 50%, 
+                        #f5f5f5 100%);
+                    box-shadow: 
+                        inset 0 2px 4px rgba(0, 0, 0, 0.2),
+                        inset 0 -1px 2px rgba(255, 255, 255, 0.5);
+                    transform: translateY(1px);
+                }
+                
+                .setting-input {
+                    width: 45px;
+                    height: 32px;
+                    border: none;
+                    text-align: center;
+                    font-size: 13px;
+                    font-weight: bold;
+                    font-family: var(--font-pixel);
+                    background: linear-gradient(145deg, #fff, #f8f8f8);
+                    color: var(--warm-gray);
+                    box-shadow: 
+                        inset 0 2px 4px rgba(0, 0, 0, 0.1);
+                    outline: none;
+                    transition: all 0.2s ease;
+                    -webkit-appearance: none;
+                    -moz-appearance: textfield;
+                }
+                
+                .setting-input::-webkit-outer-spin-button,
+                .setting-input::-webkit-inner-spin-button {
+                    -webkit-appearance: none;
+                    margin: 0;
+                }
+                
+                .setting-input:focus {
+                    background: white;
+                    color: var(--orange);
+                }
+                
+                .setting-unit {
+                    font-size: 9px;
+                    color: var(--warm-gray);
+                    opacity: 0.6;
+                    font-weight: 500;
+                }
+            </style>
+        `;
+    }
+    
+    setupPomodoroSettingsWindow(windowElement) {
+        console.log('⚙️ Setting up Pomodoro Settings window interactions');
+        
+        // Always use default settings (don't read from main window or localStorage)
+        let currentSettings = {
+            workDuration: 25,
+            shortBreak: 5,
+            longBreak: 15
+        };
+        console.log('⚙️ Using default settings for settings window:', currentSettings);
+        
+        // Set initial values in settings window
+        const workInput = windowElement.querySelector('#work-duration');
+        const shortInput = windowElement.querySelector('#short-break');
+        const longInput = windowElement.querySelector('#long-break');
+        
+        if (workInput) workInput.value = currentSettings.workDuration;
+        if (shortInput) shortInput.value = currentSettings.shortBreak;
+        if (longInput) longInput.value = currentSettings.longBreak;
+        
+        // Add event listeners for +/- buttons
+        const buttons = windowElement.querySelectorAll('.setting-btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
+            
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.sounds.play('click');
+                
+                const target = btn.dataset.target;
+                const input = windowElement.querySelector(`#${target}`);
+                const isIncrease = btn.classList.contains('increase');
+                
+                if (input) {
+                    let value = parseInt(input.value);
+                    const min = parseInt(input.min);
+                    const max = parseInt(input.max);
+                    
+                    if (isIncrease) {
+                        value = Math.min(max, value + 1);
+                    } else {
+                        value = Math.max(min, value - 1);
+                    }
+                    
+                    input.value = value;
+                    
+                    // Update main timer immediately
+                    this.updatePomodoroTimerSettings(target, value);
+                }
+            });
+        });
+        
+        // Add event listeners for direct input changes
+        [workInput, shortInput, longInput].forEach(input => {
+            if (input) {
+                input.addEventListener('change', (e) => {
+                    const value = parseInt(e.target.value);
+                    const min = parseInt(e.target.min);
+                    const max = parseInt(e.target.max);
+                    
+                    // Validate and clamp value
+                    const clampedValue = Math.min(max, Math.max(min, value || min));
+                    e.target.value = clampedValue;
+                    
+                    // Update main timer
+                    this.updatePomodoroTimerSettings(e.target.id, clampedValue);
+                });
+            }
+        });
+        
+        console.log('⚙️ Pomodoro Settings window interactions setup complete');
+    }
+    
+    updatePomodoroTimerSettings(settingName, value) {
+        const pomodoroWindow = document.querySelector('.pomodoro-app');
+        if (!pomodoroWindow) return;
+        
+        // Update the display values in the main timer
+        let displayElement;
+        switch (settingName) {
+            case 'work-duration':
+                displayElement = pomodoroWindow.querySelector('#work-duration-display');
+                break;
+            case 'short-break':
+                displayElement = pomodoroWindow.querySelector('#short-break-display');
+                break;
+            case 'long-break':
+                displayElement = pomodoroWindow.querySelector('#long-break-display');
+                break;
+        }
+        
+        if (displayElement) {
+            displayElement.textContent = value;
+        }
+        
+        // Save to localStorage and trigger timer refresh
+        const settings = JSON.parse(localStorage.getItem('pomodoro-settings') || '{}');
+        switch (settingName) {
+            case 'work-duration':
+                settings.workDuration = value;
+                break;
+            case 'short-break':
+                settings.shortBreakDuration = value;
+                break;
+            case 'long-break':
+                settings.longBreakDuration = value;
+                break;
+        }
+        localStorage.setItem('pomodoro-settings', JSON.stringify(settings));
+        
+        // Trigger a custom event to notify the timer to reload settings
+        const settingsUpdateEvent = new CustomEvent('pomodoroSettingsUpdated', {
+            detail: { settingName, value, settings }
+        });
+        document.dispatchEvent(settingsUpdateEvent);
+        
+        console.log(`⚙️ Updated ${settingName} to ${value} minutes`);
+    }
+    
+    showPomodoroNotification(message, duration = 4000) {
+        // Remove any existing notification
+        const existingNotification = document.getElementById('pomodoro-notification');
+        if (existingNotification) {
+            existingNotification.remove();
+        }
+        
+        // Find the Pomodoro window to position relative to it
+        const pomodoroWindow = document.querySelector('.pomodoro-app')?.closest('.window');
+        if (!pomodoroWindow) return;
+        
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.id = 'pomodoro-notification';
+        notification.innerHTML = `
+            <div class="notification-content">
+                ${message}
+            </div>
+            <style>
+                #pomodoro-notification {
+                    position: fixed;
+                    top: 0;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: linear-gradient(145deg, 
+                        rgba(255, 107, 53, 0.95) 0%, 
+                        rgba(255, 87, 34, 0.9) 100%);
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 12px;
+                    box-shadow: 
+                        0 8px 32px rgba(255, 87, 34, 0.3),
+                        0 4px 16px rgba(0, 0, 0, 0.2);
+                    font-family: var(--font-main);
+                    font-size: 14px;
+                    font-weight: 600;
+                    z-index: 10000;
+                    animation: slideInFromTop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+                    border: 1px solid rgba(255, 255, 255, 0.2);
+                    backdrop-filter: blur(10px);
+                    margin-top: 20px;
+                    max-width: 400px;
+                    text-align: center;
+                    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+                }
+                
+                .notification-content {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                }
+                
+                @keyframes slideInFromTop {
+                    from {
+                        opacity: 0;
+                        transform: translateX(-50%) translateY(-100px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(0);
+                    }
+                }
+                
+                @keyframes slideOutToTop {
+                    from {
+                        opacity: 1;
+                        transform: translateX(-50%) translateY(0);
+                    }
+                    to {
+                        opacity: 0;
+                        transform: translateX(-50%) translateY(-100px);
+                    }
+                }
+            </style>
+        `;
+        
+        // Add to document
+        document.body.appendChild(notification);
+        
+        // Auto-remove after duration
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.style.animation = 'slideOutToTop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 400);
+            }
+        }, duration);
+        
+        console.log(`🍅 Pomodoro notification: ${message}`);
+    }
+    
     createEQContent() {
         return `
             <div class="eq-window-container">
@@ -3628,6 +4495,7 @@ class SoftOS {
     }
     
     setupAppFunctionality(windowElement, appTitle) {
+        console.log('🍅 setupAppFunctionality called with:', { appTitle, windowElement });
         switch(appTitle) {
             case 'Calculator':
                 this.setupCalculator(windowElement);
@@ -3643,6 +4511,11 @@ class SoftOS {
                 break;
             case 'MP3 Player':
                 this.setupMP3Player(windowElement);
+                break;
+            case 'Pomodoro Timer':
+                console.log('🍅 Matched Pomodoro Timer case, calling setupPomodoroTimer...');
+                this.setupPomodoroTimer(windowElement);
+                console.log('🍅 setupPomodoroTimer call completed');
                 break;
         }
     }
@@ -4078,6 +4951,433 @@ class SoftOS {
             maximizeBtn.addEventListener('click', () => {
                 this.sounds.play('click');
                 this.maximizeWindow(windowElement);
+            });
+        }
+    }
+
+    setupPomodoroTimer(windowElement) {
+        console.log('🍅 Setting up Pomodoro Timer...');
+        console.log('🍅 Window element:', windowElement);
+        console.log('🍅 Window innerHTML preview:', windowElement.innerHTML.substring(0, 500));
+        
+        // Check if this is a custom window (should be for Pomodoro)
+        console.log('🍅 Window classes:', windowElement.className);
+        console.log('🍅 Is custom window?', windowElement.classList.contains('custom-window'));
+        
+        // Pomodoro Timer State
+        let isRunning = false;
+        let timeRemaining = 25 * 60; // 25 minutes in seconds
+        let currentSession = 1;
+        let sessionType = 'work'; // 'work', 'shortBreak', 'longBreak'
+        let timerInterval = null;
+        let totalTime = 25 * 60;
+        
+        // Settings
+        const settings = {
+            workDuration: 25,
+            shortBreakDuration: 5,
+            longBreakDuration: 15
+        };
+        
+        // Always start with fresh default settings
+        console.log('🍅 Clearing any existing pomodoro settings from localStorage');
+        localStorage.removeItem('pomodoro-settings');
+        console.log('🍅 Using default settings:', settings);
+        
+        // DOM Elements
+        console.log('🍅 Finding DOM elements...');
+        const timerTime = windowElement.querySelector('#timer-time');
+        const startPauseBtn = windowElement.querySelector('#start-pause-btn');
+        const resetBtn = windowElement.querySelector('#reset-btn');
+        const skipBtn = windowElement.querySelector('#skip-btn');
+        const sessionCount = windowElement.querySelector('#session-count');
+        const sessionTypeEl = windowElement.querySelector('#session-type');
+        const goalInput = windowElement.querySelector('#goal-input');
+        // Note: Motivational messages now show as notifications above the window
+        const progressBar = windowElement.querySelector('#progress-bar');
+        
+        console.log('🍅 Button elements found:');
+        console.log('  startPauseBtn:', startPauseBtn);
+        console.log('  resetBtn:', resetBtn);
+        console.log('  skipBtn:', skipBtn);
+        console.log('  timerTime:', timerTime);
+        console.log('  goalInput:', goalInput);
+        // Note: Duration inputs are now in the separate settings window, not in main timer
+        console.log('🍅 Skipping duration input initialization - inputs are in settings window');
+        
+        // These inputs don't exist in main window anymore since settings moved to separate window
+        // const workDurationInput = windowElement.querySelector('#work-duration');
+        // const shortBreakInput = windowElement.querySelector('#short-break');
+        // const longBreakInput = windowElement.querySelector('#long-break');
+        
+        // Load saved goal
+        const savedGoal = localStorage.getItem('pomodoro-goal');
+        if (savedGoal) {
+            goalInput.value = savedGoal;
+        }
+        
+        // Motivational messages
+        const motivationalMessages = {
+            work: [
+                "Ready to focus? Let's make these minutes count! 🍅",
+                "Deep work mode activated. You've got this! 💪",
+                "Time to tackle that important task! 🎯",
+                "Your future self will thank you for this focus! ⭐"
+            ],
+            shortBreak: [
+                "Great work! Take a breather and recharge. 🌸",
+                "Stretch those muscles and rest your mind! 🧘",
+                "A short break well earned. Hydrate and relax! 💧",
+                "Step away from the screen for a moment! 🌿"
+            ],
+            longBreak: [
+                "Excellent progress! Take a longer break and celebrate! 🎉",
+                "Time for a proper rest. You've earned it! 🏆",
+                "Great session! Go for a walk or grab a snack! 🚶",
+                "Fantastic focus! Enjoy your well-deserved break! ✨"
+            ]
+        };
+        
+        // Initialize timer display
+        console.log('🍅 Initial timer state - sessionType:', sessionType, 'currentSession:', currentSession);
+        console.log('🍅 About to call setTimerForCurrentSession...');
+        setTimerForCurrentSession();
+        console.log('🍅 After setTimerForCurrentSession - timeRemaining:', timeRemaining);
+        updateTimerDisplay();
+        updateSessionInfo();
+        updateMotivationalMessage();
+        
+        // Event Listeners
+        console.log('🍅 Adding event listeners to buttons...');
+        
+        if (startPauseBtn) {
+            console.log('🍅 Adding click listener to startPauseBtn');
+            startPauseBtn.addEventListener('click', (e) => {
+                console.log('🍅 START/PAUSE button clicked!');
+                e.preventDefault();
+                e.stopPropagation();
+                if (isRunning) {
+                    pauseTimer();
+                } else {
+                    startTimer();
+                }
+            });
+        } else {
+            console.error('🍅 ERROR: startPauseBtn not found!');
+        }
+        
+        if (resetBtn) {
+            console.log('🍅 Adding click listener to resetBtn');
+            resetBtn.addEventListener('click', (e) => {
+                console.log('🍅 RESET button clicked!');
+                e.preventDefault();
+                e.stopPropagation();
+                resetTimer();
+            });
+        } else {
+            console.error('🍅 ERROR: resetBtn not found!');
+        }
+        
+        if (skipBtn) {
+            console.log('🍅 Adding click listener to skipBtn');
+            skipBtn.addEventListener('click', (e) => {
+                console.log('🍅 SKIP button clicked!');
+                e.preventDefault();
+                e.stopPropagation();
+                skipSession();
+            });
+        } else {
+            console.error('🍅 ERROR: skipBtn not found!');
+        }
+        
+        goalInput.addEventListener('input', () => {
+            localStorage.setItem('pomodoro-goal', goalInput.value);
+        });
+        
+        // Settings button click handler
+        console.log('🍅 Looking for settings button...');
+        const settingsBtn = windowElement.querySelector('#settings-open-btn');
+        console.log('🍅 Settings button found:', settingsBtn);
+        
+        if (settingsBtn) {
+            console.log('🍅 Adding click listener to settings button');
+            settingsBtn.addEventListener('click', (e) => {
+                console.log('🍅 SETTINGS button clicked!');
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    this.sounds.play('click');
+                    console.log('🍅 Calling openPomodoroSettingsWindow...');
+                    this.openPomodoroSettingsWindow();
+                } catch (error) {
+                    console.error('🍅 ERROR in settings button click:', error);
+                }
+            });
+            
+            settingsBtn.addEventListener('mouseenter', () => {
+                console.log('🍅 Settings button hovered');
+                this.sounds.play('hover');
+            });
+        } else {
+            console.error('🍅 ERROR: Settings button not found!');
+        }
+        
+        // Listen for settings updates from the separate settings window
+        const handleSettingsUpdate = (event) => {
+            console.log('🍅 Settings updated:', event.detail);
+            const { settings: newSettings } = event.detail;
+            
+            // Update local settings object
+            settings.workDuration = newSettings.workDuration || settings.workDuration;
+            settings.shortBreakDuration = newSettings.shortBreakDuration || settings.shortBreakDuration;
+            settings.longBreakDuration = newSettings.longBreakDuration || settings.longBreakDuration;
+            
+            console.log('🍅 Updated timer settings:', settings);
+            
+            // If timer is not running, update the current session duration
+            if (!isRunning && sessionType) {
+                console.log('🍅 Timer not running, updating session duration for:', sessionType);
+                setTimerForCurrentSession();
+                updateTimerDisplay();
+                updateProgressBar();
+            }
+        };
+        
+        document.addEventListener('pomodoroSettingsUpdated', handleSettingsUpdate);
+        console.log('🍅 Added settings update listener');
+        
+        // Debug function - you can call this in browser console if needed
+        window.clearPomodoroSettings = function() {
+            localStorage.removeItem('pomodoro-settings');
+            console.log('🍅 Cleared pomodoro settings from localStorage');
+            console.log('🍅 Refresh the page to use defaults');
+        };
+        
+        // Timer Functions
+        function startTimer() {
+            console.log('🍅 startTimer() called');
+            isRunning = true;
+            if (startPauseBtn) {
+                startPauseBtn.textContent = 'PAUSE';
+                console.log('🍅 Button text updated to PAUSE');
+            }
+            
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+                updateProgressBar();
+                
+                if (timeRemaining <= 0) {
+                    completeSession();
+                }
+            }, 1000);
+            
+            // Play start sound
+            if (window.softOS && window.softOS.sounds) {
+                window.softOS.sounds.play('click');
+            }
+        }
+        
+        function pauseTimer() {
+            console.log('🍅 pauseTimer() called');
+            isRunning = false;
+            if (startPauseBtn) {
+                startPauseBtn.textContent = 'RESUME';
+                console.log('🍅 Button text updated to RESUME');
+            }
+            clearInterval(timerInterval);
+            
+            // Play pause sound
+            if (window.softOS && window.softOS.sounds) {
+                window.softOS.sounds.play('click');
+            }
+        }
+        
+        function resetTimer() {
+            console.log('🍅 resetTimer() called');
+            isRunning = false;
+            clearInterval(timerInterval);
+            if (startPauseBtn) {
+                startPauseBtn.textContent = 'START';
+                console.log('🍅 Button text updated to START');
+            }
+            
+            // Reset to first work session
+            currentSession = 1;
+            sessionType = 'work';
+            console.log('🍅 Reset to first work session');
+            
+            setTimerForCurrentSession();
+            updateTimerDisplay();
+            updateSessionInfo();
+            updateProgressBar();
+            updateMotivationalMessage();
+            
+            // Play reset sound
+            if (window.softOS && window.softOS.sounds) {
+                window.softOS.sounds.play('click');
+            }
+        }
+        
+        function skipSession() {
+            completeSession();
+            
+            // Play skip sound
+            if (window.softOS && window.softOS.sounds) {
+                window.softOS.sounds.play('click');
+            }
+        }
+        
+        function completeSession() {
+            isRunning = false;
+            clearInterval(timerInterval);
+            startPauseBtn.textContent = 'START';
+            
+            // Play completion sound
+            if (window.softOS && window.softOS.sounds) {
+                window.softOS.sounds.play('windowOpen');
+            }
+            
+            // Advance to next session
+            if (sessionType === 'work') {
+                if (currentSession % 4 === 0) {
+                    sessionType = 'longBreak';
+                } else {
+                    sessionType = 'shortBreak';
+                }
+            } else {
+                sessionType = 'work';
+                if (sessionType === 'work') {
+                    currentSession++;
+                }
+            }
+            
+            // Reset for next session
+            setTimerForCurrentSession();
+            updateTimerDisplay();
+            updateSessionInfo();
+            updateMotivationalMessage();
+            updateProgressBar();
+        }
+        
+        function setTimerForCurrentSession() {
+            console.log('🍅 setTimerForCurrentSession called for sessionType:', sessionType);
+            console.log('🍅 Current settings values:', settings);
+            
+            switch (sessionType) {
+                case 'work':
+                    timeRemaining = settings.workDuration * 60;
+                    totalTime = settings.workDuration * 60;
+                    console.log('🍅 Set work timer to', settings.workDuration, 'minutes =', timeRemaining, 'seconds');
+                    break;
+                case 'shortBreak':
+                    timeRemaining = settings.shortBreakDuration * 60;
+                    totalTime = settings.shortBreakDuration * 60;
+                    console.log('🍅 Set short break timer to', settings.shortBreakDuration, 'minutes =', timeRemaining, 'seconds');
+                    break;
+                case 'longBreak':
+                    timeRemaining = settings.longBreakDuration * 60;
+                    totalTime = settings.longBreakDuration * 60;
+                    console.log('🍅 Set long break timer to', settings.longBreakDuration, 'minutes =', timeRemaining, 'seconds');
+                    break;
+                default:
+                    console.log('🍅 Unknown sessionType:', sessionType);
+            }
+        }
+        
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            timerTime.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function updateSessionInfo() {
+            sessionCount.textContent = `${currentSession}/4`;
+            
+            switch (sessionType) {
+                case 'work':
+                    sessionTypeEl.textContent = 'WORK SESSION';
+                    break;
+                case 'shortBreak':
+                    sessionTypeEl.textContent = 'SHORT BREAK';
+                    break;
+                case 'longBreak':
+                    sessionTypeEl.textContent = 'LONG BREAK';
+                    break;
+            }
+        }
+        
+        function updateMotivationalMessage() {
+            const messages = motivationalMessages[sessionType];
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            // Show as notification above the window instead of inline
+            if (window.softOS) {
+                window.softOS.showPomodoroNotification(randomMessage);
+            }
+        }
+        
+        function updateProgressBar() {
+            const progress = (totalTime - timeRemaining) / totalTime;
+            const progressPercent = (progress * 100).toFixed(1);
+            progressBar.style.width = `${progressPercent}%`;
+        }
+        
+        // Initialize progress bar
+        progressBar.style.width = '0%';
+        
+        // Set up window control buttons
+        const closeBtn = windowElement.querySelector('.app-control-btn.close');
+        const minimizeBtn = windowElement.querySelector('.app-control-btn.minimize');
+        const maximizeBtn = windowElement.querySelector('.app-control-btn.maximize');
+        
+        if (closeBtn) {
+            closeBtn.addEventListener('mouseenter', () => {
+                if (window.softOS && window.softOS.sounds) {
+                    window.softOS.sounds.play('hover');
+                }
+            });
+            closeBtn.addEventListener('click', () => {
+                // Clean up timer before closing
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+                if (window.softOS && window.softOS.sounds) {
+                    window.softOS.sounds.play('windowClose');
+                }
+                if (window.softOS) {
+                    window.softOS.closeWindow(windowElement.id);
+                }
+            });
+        }
+        
+        if (minimizeBtn) {
+            minimizeBtn.addEventListener('mouseenter', () => {
+                if (window.softOS && window.softOS.sounds) {
+                    window.softOS.sounds.play('hover');
+                }
+            });
+            minimizeBtn.addEventListener('click', () => {
+                if (window.softOS && window.softOS.sounds) {
+                    window.softOS.sounds.play('click');
+                }
+                windowElement.style.animation = 'windowMinimize 0.3s ease-in-out forwards';
+                setTimeout(() => {
+                    windowElement.style.display = 'none';
+                }, 300);
+            });
+        }
+        
+        if (maximizeBtn) {
+            maximizeBtn.addEventListener('mouseenter', () => {
+                if (window.softOS && window.softOS.sounds) {
+                    window.softOS.sounds.play('hover');
+                }
+            });
+            maximizeBtn.addEventListener('click', () => {
+                if (window.softOS && window.softOS.sounds) {
+                    window.softOS.sounds.play('click');
+                }
+                windowElement.classList.toggle('maximized');
             });
         }
     }

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a vanilla JavaScript web application called "kevOS" - a retro-styled virtual operating system interface with a built-in soundboard app. It features a warm, tactile UI inspired by the movie "Her" with retro Mac-like aesthetics.
+This is a vanilla JavaScript web application called "kevOS" - a retro-styled virtual operating system interface with a built-in soundboard app. It features a warm, tactile UI inspired by the movie "Her" with retro Mac-like aesthetics. The guiding core principle is to make an operating system that is intimate, yet infinite.
 
 ## Architecture
 
