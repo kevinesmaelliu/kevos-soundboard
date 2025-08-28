@@ -118,19 +118,19 @@ class SoftOS {
             { text: 'kevOS Terminal v1.0.1\n', delay: 100 },
             { text: 'Copyright (c) 2025 kevs.fyi\n', delay: 50 },
             { text: 'All systems nominal.\n\n', delay: 100 },
-            { text: '> Detecting audio hardware... [OK]\n', delay: 300 },
+            { text: '> Detecting audio hardware... [OK]\n', delay: 100 },
             { text: '> Initializing sound drivers... [OK]\n', delay: 200 },
             { text: '> Dilly-Dallying... [OK]\n', delay: 200 },
-            { text: '> Injecting crypto miner... [ACTIVE]\n', delay: 300 },
-            { text: '> Jk. [lol]\n', delay: 300 },
-            { text: '> Checking for signs of intelligent life... [TIMEOUT]\n', delay: 1000 },
-            { text: '> Anomaly "meow" detected... [???]\n', delay: 400 },
+            { text: '> Injecting crypto miner... [ACTIVE]\n', delay: 100 },
+            { text: '> Jk. [lol]\n', delay: 200 },
+            { text: '> Checking for signs of intelligent life... [TIMEOUT]\n', delay: 200 },
+            { text: '> Anomaly "meow" detected... [???]\n', delay: 200 },
             { text: '  /\\_/\\\n', delay: 100 },
             { text: '  ( o.o )\n', delay: 100 },
             { text: '  > ^ <\n\n', delay: 100 },
             { text: 'System ready.\n', delay: 100 },
-            { text: 'Awaiting user input...\n\n', delay: 200 },
-            { text: '$ ', delay: 500, final: true }
+            { text: 'Awaiting user input...\n\n', delay: 100 },
+            { text: '$ ', delay: 100, final: true }
         ];
         
         // Start with initial terminal animation first
@@ -762,9 +762,13 @@ class SoftOS {
         });
         
         // Desktop icon launching
-        document.querySelectorAll('.desktop-icon').forEach(item => {
+        const desktopIcons = document.querySelectorAll('.desktop-icon');
+        console.log('🖥️ Found desktop icons:', desktopIcons.length, Array.from(desktopIcons).map(icon => icon.dataset.app));
+        desktopIcons.forEach(item => {
             let hoverSound = null;
             let fadeInterval = null;
+            
+            console.log('🔧 Setting up events for:', item.dataset.app);
             
             item.addEventListener('mouseenter', () => {
                 // Start persistent hover sound with fade in
@@ -806,6 +810,14 @@ class SoftOS {
             });
             
             item.addEventListener('click', (e) => {
+                console.log('🖱️ Desktop icon clicked:', item.dataset.app);
+                console.log('🖱️ Window location:', window.location.href);
+                
+                if (!item.dataset.app) {
+                    console.error('❌ No data-app attribute found on:', item);
+                    return;
+                }
+                
                 // Stop hover sound on click
                 if (fadeInterval) clearInterval(fadeInterval);
                 if (hoverSound) {
@@ -813,7 +825,13 @@ class SoftOS {
                     hoverSound.currentTime = 0;
                     hoverSound = null;
                 }
-                this.sounds.play('click');
+                
+                try {
+                    this.sounds.play('click');
+                } catch (e) {
+                    console.log('🔇 Click sound failed:', e);
+                }
+                
                 this.launchApp(item.dataset.app);
                 this.addRippleEffect(item, e);
             });
@@ -1040,6 +1058,7 @@ class SoftOS {
     }
     
     launchApp(appName) {
+        console.log('🚀 launchApp called with:', appName);
         const appConfigs = {
             finder: {
                 title: 'Finder',
@@ -1086,11 +1105,23 @@ class SoftOS {
                 width: '400px',
                 height: 'auto',
                 customWindow: true
+            },
+            browser: {
+                title: 'Browser',
+                content: this.createBrowserContent(),
+                width: '900px',
+                height: '700px',
+                customWindow: true,
+                resizable: true,
+                minWidth: '400px',
+                minHeight: '300px'
             }
         };
         
         const config = appConfigs[appName];
+        console.log('🔍 Looking for config for:', appName, 'Found:', !!config);
         if (config) {
+            console.log('✅ Creating window for:', appName, config);
             this.createWindow(config);
             
             // Track task completion
@@ -1362,6 +1393,7 @@ class SoftOS {
     }
     
     createWindow(config) {
+        console.log('🪟 createWindow called with config:', config);
         this.sounds.play('windowOpen');
         
         const windowId = `window-${Date.now()}`;
@@ -1376,6 +1408,40 @@ class SoftOS {
             window.style.height = config.height;
         }
         window.style.zIndex = ++this.windowZIndex;
+        
+        // Add resizing functionality for browser window
+        if (config.resizable) {
+            window.style.resize = 'both';
+            window.style.overflow = 'hidden';
+            window.style.minWidth = config.minWidth || '300px';
+            window.style.minHeight = config.minHeight || '200px';
+            window.style.maxWidth = '95vw';
+            window.style.maxHeight = '90vh';
+            
+            // Add resize handle
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'window-resize-handle';
+            resizeHandle.innerHTML = '↘️';
+            resizeHandle.style.cssText = `
+                position: absolute;
+                bottom: 0;
+                right: 0;
+                width: 20px;
+                height: 20px;
+                cursor: nw-resize;
+                user-select: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 12px;
+                opacity: 0.5;
+                z-index: 1000;
+            `;
+            window.appendChild(resizeHandle);
+            
+            // Add manual resize functionality
+            this.makeResizable(window, resizeHandle);
+        }
         
         // Calculate offset for cascading windows  
         if (config.position === 'top-right') {
@@ -1428,6 +1494,84 @@ class SoftOS {
         
         // Add event listeners for app-specific functionality
         this.setupAppFunctionality(window, config.title);
+    }
+    
+    makeResizable(windowElement, resizeHandle) {
+        let isResizing = false;
+        let startX, startY, startWidth, startHeight;
+        
+        const startResize = (e) => {
+            isResizing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startWidth = parseInt(getComputedStyle(windowElement).width, 10);
+            startHeight = parseInt(getComputedStyle(windowElement).height, 10);
+            
+            document.addEventListener('mousemove', doResize);
+            document.addEventListener('mouseup', stopResize);
+            
+            // Add visual feedback
+            windowElement.style.transition = 'none';
+            resizeHandle.style.opacity = '1';
+            
+            e.preventDefault();
+        };
+        
+        const doResize = (e) => {
+            if (!isResizing) return;
+            
+            const newWidth = startWidth + (e.clientX - startX);
+            const newHeight = startHeight + (e.clientY - startY);
+            
+            // Apply min/max constraints
+            const minWidth = parseInt(windowElement.style.minWidth) || 300;
+            const minHeight = parseInt(windowElement.style.minHeight) || 200;
+            const maxWidth = window.innerWidth * 0.95;
+            const maxHeight = window.innerHeight * 0.90;
+            
+            const constrainedWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
+            const constrainedHeight = Math.min(Math.max(newHeight, minHeight), maxHeight);
+            
+            windowElement.style.width = constrainedWidth + 'px';
+            windowElement.style.height = constrainedHeight + 'px';
+            
+            // Ensure iframe resizes with window
+            const iframe = windowElement.querySelector('#browser-frame');
+            if (iframe) {
+                iframe.style.width = '100%';
+                iframe.style.height = '100%';
+            }
+        };
+        
+        const stopResize = () => {
+            if (!isResizing) return;
+            
+            isResizing = false;
+            
+            document.removeEventListener('mousemove', doResize);
+            document.removeEventListener('mouseup', stopResize);
+            
+            // Restore visual feedback
+            windowElement.style.transition = '';
+            resizeHandle.style.opacity = '0.5';
+            
+            console.log('🔧 Browser window resized to:', windowElement.style.width, 'x', windowElement.style.height);
+        };
+        
+        resizeHandle.addEventListener('mousedown', startResize);
+        
+        // Also add hover effect to resize handle
+        resizeHandle.addEventListener('mouseenter', () => {
+            resizeHandle.style.opacity = '0.8';
+            resizeHandle.style.backgroundColor = 'rgba(255, 107, 53, 0.1)';
+        });
+        
+        resizeHandle.addEventListener('mouseleave', () => {
+            if (!isResizing) {
+                resizeHandle.style.opacity = '0.5';
+                resizeHandle.style.backgroundColor = 'transparent';
+            }
+        });
     }
     
     createFinderContent() {
@@ -3181,6 +3325,627 @@ class SoftOS {
         `;
     }
     
+    createBrowserContent() {
+        console.log('🌐 createBrowserContent called');
+        return `
+            <div class="browser-app">
+                <div class="app-window-header drag-handle">
+                    <button class="app-control-btn close" title="Close"></button>
+                    <button class="app-control-btn minimize" title="Minimize"></button>
+                    <button class="app-control-btn maximize" title="Maximize"></button>
+                    <div class="app-brand">Browser</div>
+                    <div class="drag-grip">⋮⋮</div>
+                </div>
+                
+                <div class="browser-content">
+                    <!-- Navigation Bar -->
+                    <div class="browser-nav">
+                        <div class="nav-controls">
+                            <button class="nav-btn" id="back-btn" title="Back">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 12H5M12 5l-7 7 7 7"/>
+                                </svg>
+                            </button>
+                            <button class="nav-btn" id="forward-btn" title="Forward">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                                </svg>
+                            </button>
+                            <button class="nav-btn" id="refresh-btn" title="Refresh">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M1 4v6h6M23 20v-6h-6"/>
+                                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <div class="address-bar-container">
+                            <div class="security-indicator">🔒</div>
+                            <input type="text" class="address-bar" id="address-bar" placeholder="Enter URL or search..." value="https://kevs.fyi">
+                            <button class="go-btn" id="go-btn">Go</button>
+                        </div>
+                        
+                        <div class="browser-menu">
+                            <button class="menu-btn" id="bookmarks-btn" title="Bookmarks">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>
+                                </svg>
+                            </button>
+                            <button class="menu-btn" id="menu-btn" title="Menu">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="3" y1="6" x2="21" y2="6"/>
+                                    <line x1="3" y1="12" x2="21" y2="12"/>
+                                    <line x1="3" y1="18" x2="21" y2="18"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Bookmarks Bar -->
+                    <div class="bookmarks-bar" id="bookmarks-bar">
+                        <div class="bookmark-item" data-url="https://kevs.fyi">
+                            <span class="bookmark-favicon">👨‍💻</span>
+                            <span class="bookmark-title">Kevin's Site</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Website Content Area -->
+                    <div class="browser-viewport">
+                        <iframe id="browser-frame" src="about:blank" frameborder="0"></iframe>
+                        
+                        <!-- Loading State -->
+                        <div class="loading-overlay" id="loading-overlay">
+                            <div class="loading-spinner"></div>
+                            <div class="loading-text">Loading...</div>
+                        </div>
+                        
+                        <!-- Default Homepage -->
+                        <div class="homepage" id="homepage">
+                            <div class="homepage-content">
+                                <h1>Welcome to kevOS Browser</h1>
+                                <p class="homepage-subtitle">A retro-style web browser experience</p>
+                                <div style="background: rgba(255, 107, 53, 0.1); padding: 16px; border-radius: 12px; margin: 20px 0; font-size: 14px; line-height: 1.4;">
+                                    <strong>🌐 How kevOS Browser Works:</strong><br>
+                                    • <strong>Iframe-friendly sites</strong> load directly in the browser<br>
+                                    • <strong>Protected sites</strong> (Google, GitHub, etc.) get an "Open in New Tab" option<br>
+                                    • This is normal browser security - not a bug!<br><br>
+                                    <strong>📝 Try these sites:</strong> example.com, httpbin.org, or any search term
+                                </div>
+                                
+                                <div class="search-container">
+                                    <input type="text" class="homepage-search" id="homepage-search" placeholder="Search the web or enter a URL">
+                                    <button class="homepage-search-btn" id="homepage-search-btn">Search</button>
+                                </div>
+                                
+                                <div class="quick-links">
+                                    <h3>Quick Links</h3>
+                                    <div class="quick-link-grid">
+                                        <a href="#" class="quick-link" data-url="https://kevs.fyi">
+                                            <div class="quick-link-icon">👨‍💻</div>
+                                            <div class="quick-link-title">Kevin's Site</div>
+                                        </a>
+                                        <a href="#" class="quick-link" data-url="https://example.com">
+                                            <div class="quick-link-icon">🌐</div>
+                                            <div class="quick-link-title">Example</div>
+                                        </a>
+                                        <a href="#" class="quick-link" data-url="https://en.wikipedia.org">
+                                            <div class="quick-link-icon">📖</div>
+                                            <div class="quick-link-title">Wikipedia</div>
+                                        </a>
+                                        <a href="#" class="quick-link" data-url="https://httpbin.org">
+                                            <div class="quick-link-icon">🔧</div>
+                                            <div class="quick-link-title">HTTPBin</div>
+                                        </a>
+                                        <a href="#" class="quick-link" data-url="https://www.w3schools.com">
+                                            <div class="quick-link-icon">📚</div>
+                                            <div class="quick-link-title">W3Schools</div>
+                                        </a>
+                                        <a href="#" class="quick-link" data-url="https://news.ycombinator.com">
+                                            <div class="quick-link-icon">🟠</div>
+                                            <div class="quick-link-title">Hacker News</div>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Status Bar -->
+                    <div class="browser-status">
+                        <div class="status-left">
+                            <span class="page-status" id="page-status">Ready</span>
+                        </div>
+                        <div class="status-right">
+                            <span class="zoom-level">100%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <style>
+                .browser-app {
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(145deg, 
+                        rgba(250, 245, 240, 0.98) 0%,
+                        var(--cream) 25%,
+                        var(--warm-cream) 75%,
+                        rgba(184, 179, 173, 0.4) 100%);
+                    border-radius: 20px;
+                    overflow: hidden;
+                    font-family: var(--font-main);
+                    display: flex;
+                    flex-direction: column;
+                }
+                
+                .browser-content {
+                    display: flex;
+                    flex-direction: column;
+                    flex: 1;
+                    overflow: hidden;
+                }
+                
+                /* Navigation Bar */
+                .browser-nav {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    padding: 10px 15px;
+                    background: linear-gradient(145deg, 
+                        rgba(245, 240, 235, 0.95) 0%,
+                        rgba(235, 230, 225, 0.9) 100%);
+                    border-bottom: 1px solid rgba(184, 179, 173, 0.3);
+                    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8),
+                                inset 0 -1px 2px rgba(184, 179, 173, 0.2);
+                }
+                
+                .nav-controls {
+                    display: flex;
+                    gap: 6px;
+                }
+                
+                .nav-btn, .menu-btn {
+                    width: 38px;
+                    height: 38px;
+                    border: none;
+                    border-radius: 12px;
+                    background: linear-gradient(145deg, 
+                        rgba(255, 255, 255, 0.95) 0%,
+                        rgba(245, 242, 238, 0.85) 40%,
+                        rgba(235, 230, 225, 0.7) 100%);
+                    color: var(--warm-gray);
+                    cursor: pointer;
+                    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    position: relative;
+                    box-shadow: 
+                        0 6px 16px rgba(45, 42, 37, 0.12),
+                        0 2px 6px rgba(45, 42, 37, 0.08),
+                        inset 0 2px 4px rgba(255, 255, 255, 0.9),
+                        inset 0 -3px 6px rgba(184, 179, 173, 0.25),
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+                }
+                
+                .nav-btn::before, .menu-btn::before {
+                    content: '';
+                    position: absolute;
+                    top: 1px;
+                    left: 1px;
+                    right: 1px;
+                    height: 50%;
+                    background: linear-gradient(180deg, 
+                        rgba(255, 255, 255, 0.6) 0%, 
+                        transparent 100%);
+                    border-radius: 10px 10px 20px 20px;
+                    pointer-events: none;
+                }
+                
+                .nav-btn:hover, .menu-btn:hover {
+                    background: linear-gradient(145deg, 
+                        rgba(255, 255, 255, 0.98) 0%,
+                        rgba(250, 247, 243, 0.9) 40%,
+                        rgba(240, 235, 230, 0.8) 100%);
+                    transform: translateY(-2px);
+                    box-shadow: 
+                        0 8px 20px rgba(45, 42, 37, 0.15),
+                        0 4px 8px rgba(45, 42, 37, 0.1),
+                        inset 0 3px 6px rgba(255, 255, 255, 0.95),
+                        inset 0 -4px 8px rgba(184, 179, 173, 0.2),
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+                }
+                
+                .nav-btn:active, .menu-btn:active {
+                    transform: translateY(2px);
+                    background: linear-gradient(145deg, 
+                        rgba(235, 232, 228, 0.9) 0%,
+                        rgba(225, 220, 215, 0.8) 40%,
+                        rgba(215, 210, 205, 0.7) 100%);
+                    box-shadow: 
+                        0 2px 6px rgba(45, 42, 37, 0.2),
+                        inset 0 4px 8px rgba(184, 179, 173, 0.4),
+                        inset 0 -2px 4px rgba(255, 255, 255, 0.5),
+                        inset 0 0 0 1px rgba(184, 179, 173, 0.3);
+                }
+                
+                .nav-btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
+                
+                .address-bar-container {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    background: linear-gradient(145deg, 
+                        rgba(248, 246, 243, 0.98) 0%,
+                        rgba(242, 239, 235, 0.95) 50%,
+                        rgba(238, 234, 229, 0.9) 100%);
+                    border-radius: 22px;
+                    padding: 12px 16px;
+                    margin: 0 8px;
+                    box-shadow: 
+                        inset 0 4px 12px rgba(45, 42, 37, 0.15),
+                        inset 0 2px 6px rgba(45, 42, 37, 0.1),
+                        inset 0 -2px 4px rgba(255, 255, 255, 0.8),
+                        0 2px 8px rgba(45, 42, 37, 0.08),
+                        0 0 0 1px rgba(255, 255, 255, 0.6);
+                    border: 1px solid rgba(184, 179, 173, 0.2);
+                    min-width: 0;
+                    position: relative;
+                }
+                
+                .address-bar-container::before {
+                    content: '';
+                    position: absolute;
+                    top: 2px;
+                    left: 2px;
+                    right: 2px;
+                    height: 35%;
+                    background: linear-gradient(180deg, 
+                        rgba(255, 255, 255, 0.5) 0%, 
+                        transparent 100%);
+                    border-radius: 18px;
+                    pointer-events: none;
+                }
+                
+                .security-indicator {
+                    color: #4CAF50;
+                    font-size: 12px;
+                }
+                
+                .address-bar {
+                    flex: 1;
+                    border: none;
+                    outline: none;
+                    background: transparent;
+                    font-size: 14px;
+                    color: var(--warm-gray);
+                    font-family: var(--font-main);
+                    min-width: 0;
+                }
+                
+                .address-bar::placeholder {
+                    color: rgba(184, 179, 173, 0.7);
+                }
+                
+                .go-btn {
+                    padding: 10px 18px;
+                    border: none;
+                    border-radius: 14px;
+                    background: linear-gradient(145deg, 
+                        rgba(255, 107, 53, 1) 0%,
+                        rgba(255, 87, 34, 0.95) 50%,
+                        rgba(230, 74, 25, 0.9) 100%);
+                    color: white;
+                    font-size: 13px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+                    position: relative;
+                    box-shadow: 
+                        0 4px 12px rgba(255, 87, 34, 0.35),
+                        0 2px 6px rgba(255, 87, 34, 0.25),
+                        inset 0 2px 4px rgba(255, 255, 255, 0.4),
+                        inset 0 -2px 3px rgba(200, 50, 20, 0.3),
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+                }
+                
+                .go-btn::before {
+                    content: '';
+                    position: absolute;
+                    top: 1px;
+                    left: 1px;
+                    right: 1px;
+                    height: 50%;
+                    background: linear-gradient(180deg, 
+                        rgba(255, 255, 255, 0.5) 0%, 
+                        transparent 100%);
+                    border-radius: 12px 12px 20px 20px;
+                    pointer-events: none;
+                }
+                
+                .go-btn:hover {
+                    background: linear-gradient(145deg, 
+                        rgba(255, 120, 70, 1) 0%,
+                        rgba(255, 107, 53, 0.98) 50%,
+                        rgba(240, 85, 35, 0.95) 100%);
+                    transform: translateY(-2px);
+                    box-shadow: 
+                        0 6px 16px rgba(255, 87, 34, 0.4),
+                        0 3px 8px rgba(255, 87, 34, 0.3),
+                        inset 0 3px 6px rgba(255, 255, 255, 0.5),
+                        inset 0 -3px 4px rgba(200, 50, 20, 0.25),
+                        inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+                }
+                
+                .go-btn:active {
+                    transform: translateY(1px);
+                    background: linear-gradient(145deg, 
+                        rgba(230, 74, 25, 0.95) 0%,
+                        rgba(210, 60, 15, 0.9) 50%,
+                        rgba(190, 50, 10, 0.85) 100%);
+                    box-shadow: 
+                        0 2px 6px rgba(255, 87, 34, 0.3),
+                        inset 0 3px 8px rgba(200, 50, 20, 0.4),
+                        inset 0 -2px 4px rgba(255, 255, 255, 0.3),
+                        inset 0 0 0 1px rgba(200, 50, 20, 0.2);
+                }
+                
+                .browser-menu {
+                    display: flex;
+                    gap: 6px;
+                }
+                
+                /* Bookmarks Bar */
+                .bookmarks-bar {
+                    display: flex;
+                    gap: 2px;
+                    padding: 6px 15px;
+                    background: linear-gradient(145deg, 
+                        rgba(240, 235, 230, 0.8) 0%,
+                        rgba(230, 225, 220, 0.6) 100%);
+                    border-bottom: 1px solid rgba(184, 179, 173, 0.2);
+                    overflow-x: auto;
+                    scrollbar-width: none;
+                }
+                
+                .bookmarks-bar::-webkit-scrollbar {
+                    display: none;
+                }
+                
+                .bookmark-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: background 0.15s ease;
+                    white-space: nowrap;
+                    font-size: 12px;
+                    color: var(--warm-gray);
+                }
+                
+                .bookmark-item:hover {
+                    background: rgba(255, 255, 255, 0.6);
+                }
+                
+                .bookmark-favicon {
+                    font-size: 14px;
+                }
+                
+                .bookmark-title {
+                    font-weight: 500;
+                }
+                
+                /* Browser Viewport */
+                .browser-viewport {
+                    flex: 1;
+                    position: relative;
+                    background: white;
+                    border-top: 1px solid rgba(184, 179, 173, 0.3);
+                }
+                
+                #browser-frame {
+                    width: 100%;
+                    height: 100%;
+                    border: none;
+                }
+                
+                .loading-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(255, 255, 255, 0.95);
+                    display: none;
+                    align-items: center;
+                    justify-content: center;
+                    flex-direction: column;
+                    gap: 15px;
+                    z-index: 10;
+                }
+                
+                .loading-overlay.active {
+                    display: flex;
+                }
+                
+                .loading-spinner {
+                    width: 32px;
+                    height: 32px;
+                    border: 3px solid rgba(255, 107, 53, 0.2);
+                    border-top: 3px solid var(--orange);
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+                
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                
+                .loading-text {
+                    color: var(--warm-gray);
+                    font-size: 14px;
+                    font-weight: 500;
+                }
+                
+                /* Homepage */
+                .homepage {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: linear-gradient(145deg, 
+                        rgba(255, 255, 255, 0.95) 0%,
+                        rgba(250, 245, 240, 0.9) 100%);
+                    padding: 40px 30px;
+                    overflow-y: auto;
+                }
+                
+                .homepage-content {
+                    max-width: 600px;
+                    margin: 0 auto;
+                    text-align: center;
+                }
+                
+                .homepage h1 {
+                    font-size: 2.5em;
+                    color: var(--warm-gray);
+                    margin-bottom: 10px;
+                    font-weight: 300;
+                }
+                
+                .homepage-subtitle {
+                    color: rgba(184, 179, 173, 0.8);
+                    font-size: 1.1em;
+                    margin-bottom: 40px;
+                }
+                
+                .search-container {
+                    display: flex;
+                    gap: 10px;
+                    margin-bottom: 50px;
+                    max-width: 500px;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+                
+                .homepage-search {
+                    flex: 1;
+                    padding: 15px 20px;
+                    border: 2px solid rgba(184, 179, 173, 0.3);
+                    border-radius: 25px;
+                    font-size: 16px;
+                    outline: none;
+                    background: white;
+                    transition: all 0.2s ease;
+                    font-family: var(--font-main);
+                }
+                
+                .homepage-search:focus {
+                    border-color: var(--orange);
+                    box-shadow: 0 0 12px rgba(255, 107, 53, 0.3);
+                }
+                
+                .homepage-search-btn {
+                    padding: 15px 30px;
+                    border: none;
+                    border-radius: 25px;
+                    background: var(--orange);
+                    color: white;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.15s ease;
+                    font-family: var(--font-main);
+                }
+                
+                .homepage-search-btn:hover {
+                    background: rgba(255, 107, 53, 1);
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(255, 87, 34, 0.4);
+                }
+                
+                .quick-links h3 {
+                    color: var(--warm-gray);
+                    margin-bottom: 25px;
+                    font-size: 1.3em;
+                    font-weight: 500;
+                }
+                
+                .quick-link-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                    gap: 20px;
+                }
+                
+                .quick-link {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    padding: 20px;
+                    background: linear-gradient(145deg, 
+                        rgba(255, 255, 255, 0.8) 0%,
+                        rgba(250, 245, 240, 0.6) 100%);
+                    border-radius: 15px;
+                    text-decoration: none;
+                    color: var(--warm-gray);
+                    transition: all 0.2s ease;
+                    border: 1px solid rgba(184, 179, 173, 0.2);
+                    box-shadow: 0 3px 8px rgba(45, 42, 37, 0.1);
+                }
+                
+                .quick-link:hover {
+                    transform: translateY(-3px);
+                    box-shadow: 0 6px 16px rgba(45, 42, 37, 0.15);
+                    background: linear-gradient(145deg, 
+                        rgba(255, 255, 255, 0.9) 0%,
+                        rgba(255, 250, 245, 0.7) 100%);
+                }
+                
+                .quick-link-icon {
+                    font-size: 32px;
+                    margin-bottom: 8px;
+                }
+                
+                .quick-link-title {
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+                
+                /* Status Bar */
+                .browser-status {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding: 6px 15px;
+                    background: linear-gradient(145deg, 
+                        rgba(235, 230, 225, 0.9) 0%,
+                        rgba(225, 220, 215, 0.8) 100%);
+                    border-top: 1px solid rgba(184, 179, 173, 0.3);
+                    font-size: 12px;
+                    color: rgba(184, 179, 173, 0.8);
+                    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8);
+                }
+                
+                .zoom-level {
+                    font-weight: 600;
+                }
+                
+                /* Hide iframe when homepage is visible */
+                .homepage.active ~ #browser-frame {
+                    display: none;
+                }
+            </style>
+        `;
+    }
+    
     createPomodoroSettingsContent() {
         return `
             <div class="app-window-container">
@@ -4496,6 +5261,7 @@ class SoftOS {
     
     setupAppFunctionality(windowElement, appTitle) {
         console.log('🍅 setupAppFunctionality called with:', { appTitle, windowElement });
+        console.log('🍅 Checking switch case for:', appTitle);
         switch(appTitle) {
             case 'Calculator':
                 this.setupCalculator(windowElement);
@@ -4516,6 +5282,9 @@ class SoftOS {
                 console.log('🍅 Matched Pomodoro Timer case, calling setupPomodoroTimer...');
                 this.setupPomodoroTimer(windowElement);
                 console.log('🍅 setupPomodoroTimer call completed');
+                break;
+            case 'Browser':
+                this.setupBrowser(windowElement);
                 break;
         }
     }
@@ -5414,7 +6183,10 @@ style.textContent = `
 document.head.appendChild(style);
 
 // Initialize the OS when the DOM is loaded
+console.log('🚀 SCRIPT LOADED - Version with Browser Debug');
+
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🏠 DOM LOADED - Creating SoftOS');
     window.softOS = new SoftOS();
     
     // Debug function to clear notes content (can be run in browser console)
@@ -5469,6 +6241,648 @@ SoftOS.prototype.setupFinder = function(windowElement) {
             }
         });
     });
+};
+
+// Add setupBrowser method
+SoftOS.prototype.setupBrowser = function(windowElement) {
+    console.log('🔧 setupBrowser called with:', windowElement);
+    const backBtn = windowElement.querySelector('#back-btn');
+    const forwardBtn = windowElement.querySelector('#forward-btn');
+    const refreshBtn = windowElement.querySelector('#refresh-btn');
+    const addressBar = windowElement.querySelector('#address-bar');
+    const goBtn = windowElement.querySelector('.go-btn');
+    const securityIndicator = windowElement.querySelector('.security-indicator');
+    const bookmarks = windowElement.querySelectorAll('.bookmark-item');
+    // No home button in current design
+    const searchBox = windowElement.querySelector('#homepage-search');
+    const searchBtn = windowElement.querySelector('.homepage-search-btn');
+    const quickLinks = windowElement.querySelectorAll('.quick-link');
+    const contentArea = windowElement.querySelector('#browser-content');
+    const loadingOverlay = windowElement.querySelector('.loading-overlay');
+    const statusBar = windowElement.querySelector('.status-text');
+    const zoomLevel = windowElement.querySelector('.zoom-level');
+    
+    let currentUrl = '';
+    let history = [];
+    let historyIndex = -1;
+    
+    const showLoading = () => {
+        if (loadingOverlay) {
+            loadingOverlay.style.display = 'flex';
+            loadingOverlay.style.opacity = '1';
+        }
+        if (statusBar) {
+            statusBar.textContent = 'Loading...';
+        }
+    };
+    
+    const hideLoading = () => {
+        if (loadingOverlay) {
+            setTimeout(() => {
+                loadingOverlay.style.opacity = '0';
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                }, 300);
+            }, 800);
+        }
+        if (statusBar) {
+            statusBar.textContent = 'Done';
+        }
+    };
+    
+    const updateSecurity = (url) => {
+        if (securityIndicator) {
+            if (url.startsWith('https://')) {
+                securityIndicator.textContent = '🔒';
+                securityIndicator.style.color = '#4CAF50';
+            } else if (url.startsWith('http://')) {
+                securityIndicator.textContent = '⚠️';
+                securityIndicator.style.color = '#FF9800';
+            } else {
+                securityIndicator.textContent = '🔍';
+                securityIndicator.style.color = '#666';
+            }
+        }
+    };
+    
+    const loadUrl = (url) => {
+        if (!url) return;
+        
+        // Add https:// if no protocol specified
+        if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('file://')) {
+            url = 'https://' + url;
+        }
+        
+        showLoading();
+        updateSecurity(url);
+        
+        if (addressBar) {
+            addressBar.value = url;
+        }
+        
+        // Add to history
+        if (currentUrl !== url) {
+            history = history.slice(0, historyIndex + 1);
+            history.push(url);
+            historyIndex = history.length - 1;
+            currentUrl = url;
+        }
+        
+        // Update navigation buttons
+        if (backBtn) {
+            backBtn.style.opacity = historyIndex > 0 ? '1' : '0.5';
+        }
+        if (forwardBtn) {
+            forwardBtn.style.opacity = historyIndex < history.length - 1 ? '1' : '0.5';
+        }
+        
+        // Get the iframe for actual browsing
+        const iframe = windowElement.querySelector('#browser-frame');
+        
+        if (iframe) {
+            try {
+                // Set iframe security attributes
+                iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation');
+                iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+                
+                // Set loading state
+                let loadingTimeout;
+                let hasLoaded = false;
+                
+                // Handle iframe load events
+                iframe.onload = () => {
+                    console.log('🌐 Page loaded successfully:', url);
+                    hasLoaded = true;
+                    clearTimeout(loadingTimeout);
+                    hideLoading();
+                    
+                    // Try to update the title from iframe (may not work due to CORS)
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        const title = iframeDoc.title;
+                        if (title) {
+                            console.log('📄 Page title:', title);
+                        }
+                    } catch (e) {
+                        console.log('🔒 Cannot access iframe content (CORS protected)');
+                    }
+                };
+                
+                iframe.onerror = (error) => {
+                    console.error('❌ Iframe error for:', url, error);
+                    showIframeError(url, 'Failed to load page');
+                };
+                
+                // Set a timeout for loading (some pages may never fire onload due to CORS)
+                loadingTimeout = setTimeout(() => {
+                    if (!hasLoaded) {
+                        console.log('⏱️ Loading timeout for:', url, '- likely blocked by X-Frame-Options or network issues');
+                        showIframeError(url, 'Cannot display this website in frame');
+                    }
+                }, 5000); // 5 second timeout (faster feedback)
+                
+                // Attempt to load the URL
+                console.log('🔄 Loading iframe with URL:', url);
+                iframe.src = url;
+                
+            } catch (error) {
+                console.error('❌ Error setting up iframe:', error);
+                showIframeError(url, 'Failed to initialize page');
+            }
+        }
+        
+        // Helper function to show iframe errors
+        const showIframeError = (failedUrl, errorMessage) => {
+            clearTimeout(loadingTimeout);
+            hideLoading();
+            
+            if (iframe) {
+                iframe.srcdoc = `
+                    <html>
+                    <head>
+                        <style>
+                            body {
+                                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                                padding: 60px 40px;
+                                text-align: center;
+                                background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                                margin: 0;
+                                min-height: 100vh;
+                                box-sizing: border-box;
+                                display: flex;
+                                flex-direction: column;
+                                justify-content: center;
+                                align-items: center;
+                            }
+                            .error-container {
+                                background: white;
+                                padding: 40px;
+                                border-radius: 12px;
+                                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+                                max-width: 500px;
+                            }
+                            h2 {
+                                color: #d32f2f;
+                                margin-bottom: 16px;
+                                font-size: 24px;
+                            }
+                            .url {
+                                background: #f5f5f5;
+                                padding: 12px;
+                                border-radius: 6px;
+                                font-family: monospace;
+                                word-break: break-all;
+                                margin: 20px 0;
+                            }
+                            .help-text {
+                                color: #666;
+                                font-size: 14px;
+                                line-height: 1.4;
+                                margin-bottom: 24px;
+                            }
+                            .actions {
+                                display: flex;
+                                gap: 12px;
+                                justify-content: center;
+                                flex-wrap: wrap;
+                            }
+                            button {
+                                background: #1976d2;
+                                color: white;
+                                border: none;
+                                padding: 12px 24px;
+                                border-radius: 6px;
+                                cursor: pointer;
+                                font-size: 14px;
+                                transition: background 0.2s;
+                            }
+                            button:hover {
+                                background: #1565c0;
+                            }
+                            .secondary {
+                                background: #666;
+                            }
+                            .secondary:hover {
+                                background: #555;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="error-container">
+                            <h2>🚫 ${errorMessage}</h2>
+                            <div class="url">${failedUrl}</div>
+                            <div class="help-text">
+                                <strong>🔒 Security Protection Active</strong><br>
+                                This website blocks iframe embedding to prevent security attacks.<br><br>
+                                <strong>Why this happens:</strong><br>
+                                • Major sites (Google, GitHub, YouTube) use X-Frame-Options headers<br>
+                                • Banking and social media sites protect user data<br>
+                                • This is normal web security, not a browser issue<br><br>
+                                <strong>💡 Solutions:</strong>
+                            </div>
+                            <div class="actions">
+                                <button onclick="window.open('${failedUrl}', '_blank')" style="background: #4CAF50;">🚀 Open in New Tab</button>
+                                <button onclick="window.parent.postMessage({action: 'searchAlternative', query: '${failedUrl.replace('https://', '').replace('http://', '')}'}, '*')" style="background: #2196F3;">🔍 Search About This</button>
+                                <button onclick="window.parent.postMessage({action: 'loadUrl', url: 'https://archive.org/web/'}, '*')" style="background: #FF9800;">📚 Try Wayback Machine</button>
+                                <button class="secondary" onclick="history.back()">⬅️ Go Back</button>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `;
+            }
+        };
+        
+        this.sounds.play('click');
+    };
+    
+    // Message handler for iframe error page actions
+    window.addEventListener('message', (event) => {
+        if (event.data && event.data.action) {
+            switch (event.data.action) {
+                case 'searchAlternative':
+                    console.log('🔍 Searching for alternative:', event.data.query);
+                    loadUrl('https://duckduckgo.com/?q=' + encodeURIComponent(event.data.query));
+                    break;
+                case 'loadUrl':
+                    console.log('🌐 Loading requested URL:', event.data.url);
+                    loadUrl(event.data.url);
+                    break;
+                default:
+                    console.log('❓ Unknown message action:', event.data.action);
+            }
+        }
+    });
+    
+    const goHome = () => {
+        console.log('🏠 Going home');
+        
+        const homepage = windowElement.querySelector('.homepage');
+        const iframe = windowElement.querySelector('#browser-frame');
+        
+        // Show homepage and hide iframe
+        if (homepage) {
+            homepage.style.display = 'block';
+        }
+        if (iframe) {
+            iframe.style.display = 'none';
+            iframe.src = 'about:blank'; // Clear iframe
+        }
+        
+        // Update address bar and security indicator
+        if (addressBar) {
+            addressBar.value = 'https://kevs.fyi';
+        }
+        updateSecurity('https://kevs.fyi');
+        
+        // Update status bar
+        if (statusBar) {
+            statusBar.textContent = 'Home';
+        }
+        
+        // Update current URL and history
+        currentUrl = 'https://kevs.fyi';
+        if (history.length === 0 || history[history.length - 1] !== 'https://kevs.fyi') {
+            history.push('https://kevs.fyi');
+            historyIndex = history.length - 1;
+        }
+        
+        // Update navigation buttons
+        if (backBtn) {
+            backBtn.style.opacity = historyIndex > 0 ? '1' : '0.5';
+        }
+        if (forwardBtn) {
+            forwardBtn.style.opacity = historyIndex < history.length - 1 ? '1' : '0.5';
+        }
+        
+        // Hide loading overlay
+        hideLoading();
+        
+        this.sounds.play('click');
+    };
+    
+    // Navigation buttons
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            if (historyIndex > 0) {
+                historyIndex--;
+                const url = history[historyIndex];
+                console.log('⬅️ Going back to:', url);
+                
+                // Don't add to history when navigating back
+                currentUrl = url;
+                
+                if (addressBar) {
+                    addressBar.value = url;
+                }
+                
+                updateSecurity(url);
+                showLoading();
+                
+                const iframe = windowElement.querySelector('#browser-frame');
+                if (iframe) {
+                    iframe.src = url;
+                }
+                
+                // Update button states
+                backBtn.style.opacity = historyIndex > 0 ? '1' : '0.5';
+                if (forwardBtn) {
+                    forwardBtn.style.opacity = historyIndex < history.length - 1 ? '1' : '0.5';
+                }
+            }
+        });
+    }
+    
+    if (forwardBtn) {
+        forwardBtn.addEventListener('click', () => {
+            if (historyIndex < history.length - 1) {
+                historyIndex++;
+                const url = history[historyIndex];
+                console.log('➡️ Going forward to:', url);
+                
+                // Don't add to history when navigating forward
+                currentUrl = url;
+                
+                if (addressBar) {
+                    addressBar.value = url;
+                }
+                
+                updateSecurity(url);
+                showLoading();
+                
+                const iframe = windowElement.querySelector('#browser-frame');
+                if (iframe) {
+                    iframe.src = url;
+                }
+                
+                // Update button states
+                backBtn.style.opacity = historyIndex > 0 ? '1' : '0.5';
+                forwardBtn.style.opacity = historyIndex < history.length - 1 ? '1' : '0.5';
+            }
+        });
+    }
+    
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            console.log('🔄 Refresh clicked, current URL:', currentUrl);
+            
+            if (currentUrl && currentUrl !== 'https://kevs.fyi') {
+                // Reload the current page
+                showLoading();
+                const iframe = windowElement.querySelector('#browser-frame');
+                if (iframe) {
+                    // Force reload by setting src to empty then back to URL
+                    iframe.src = 'about:blank';
+                    setTimeout(() => {
+                        iframe.src = currentUrl;
+                    }, 100);
+                } else {
+                    loadUrl(currentUrl);
+                }
+            } else {
+                // If we're on the homepage or no URL, just reload homepage
+                goHome();
+            }
+        });
+    }
+    
+    // No home button in current design
+    
+    // Address bar
+    if (addressBar && goBtn) {
+        const handleAddressSubmit = () => {
+            const input = addressBar.value.trim();
+            console.log('🌐 Address bar input:', input);
+            
+            if (input) {
+                let finalUrl;
+                
+                // Smart URL detection
+                if (input.includes('.') && !input.includes(' ')) {
+                    // Treat as URL
+                    if (!input.startsWith('http://') && !input.startsWith('https://') && !input.startsWith('kevos://')) {
+                        finalUrl = 'https://' + input;
+                    } else {
+                        finalUrl = input;
+                    }
+                } else {
+                    // Treat as search query - use iframe-friendly search
+                    console.log('🔍 Searching for:', input);
+                    finalUrl = `https://duckduckgo.com/?q=${encodeURIComponent(input)}&ia=web`;
+                }
+                
+                console.log('🔗 Address bar final URL:', finalUrl);
+                
+                const homepage = windowElement.querySelector('.homepage');
+                const iframe = windowElement.querySelector('#browser-frame');
+                
+                // Hide homepage and show iframe content
+                if (homepage) {
+                    homepage.style.display = 'none';
+                }
+                if (iframe) {
+                    iframe.style.display = 'block';
+                }
+                
+                loadUrl(finalUrl);
+            }
+        };
+        
+        goBtn.addEventListener('click', handleAddressSubmit);
+        addressBar.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleAddressSubmit();
+            }
+        });
+        
+        // Add focus/blur styling
+        addressBar.addEventListener('focus', () => {
+            addressBar.style.outline = '2px solid rgba(255, 107, 53, 0.5)';
+            addressBar.style.background = 'rgba(255, 255, 255, 0.95)';
+        });
+        
+        addressBar.addEventListener('blur', () => {
+            addressBar.style.outline = 'none';
+            addressBar.style.background = 'rgba(255, 255, 255, 0.9)';
+        });
+    }
+    
+    // Bookmarks
+    bookmarks.forEach(bookmark => {
+        bookmark.addEventListener('click', (e) => {
+            e.preventDefault();
+            const url = bookmark.dataset.url;
+            console.log('🔖 Bookmark clicked:', url);
+            
+            if (url) {
+                const homepage = windowElement.querySelector('.homepage');
+                const iframe = windowElement.querySelector('#browser-frame');
+                
+                // Hide homepage and show iframe content
+                if (homepage) {
+                    homepage.style.display = 'none';
+                }
+                if (iframe) {
+                    iframe.style.display = 'block';
+                }
+                
+                loadUrl(url);
+            }
+        });
+        
+        // Add hover effect for bookmarks
+        bookmark.addEventListener('mouseenter', () => {
+            bookmark.style.background = 'rgba(255, 255, 255, 0.1)';
+        });
+        
+        bookmark.addEventListener('mouseleave', () => {
+            bookmark.style.background = 'transparent';
+        });
+    });
+    
+    // Homepage search
+    if (searchBox && searchBtn) {
+        const handleSearch = () => {
+            const query = searchBox.value.trim();
+            console.log('🔍 Search query:', query);
+            
+            if (query) {
+                let finalUrl;
+                
+                // Check if it's a URL (contains . and optionally protocol)
+                if (query.includes('.') && !query.includes(' ')) {
+                    // Treat as URL
+                    if (!query.startsWith('http://') && !query.startsWith('https://')) {
+                        finalUrl = 'https://' + query;
+                    } else {
+                        finalUrl = query;
+                    }
+                } else {
+                    // Treat as search query - offer iframe-friendly alternatives
+                    console.log('🔍 Searching for:', query);
+                    console.log('💡 Note: Google may block iframe access. Using DuckDuckGo for better compatibility.');
+                    finalUrl = `https://duckduckgo.com/?q=${encodeURIComponent(query)}&ia=web`;
+                }
+                
+                console.log('🌐 Final URL:', finalUrl);
+                
+                const homepage = windowElement.querySelector('.homepage');
+                const iframe = windowElement.querySelector('#browser-frame');
+                
+                // Hide homepage and show iframe content
+                if (homepage) {
+                    homepage.style.display = 'none';
+                }
+                if (iframe) {
+                    iframe.style.display = 'block';
+                }
+                
+                loadUrl(finalUrl);
+                
+                // Clear search box
+                searchBox.value = '';
+            }
+        };
+        
+        searchBtn.addEventListener('click', handleSearch);
+        searchBox.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
+        
+        // Add placeholder animation on focus
+        searchBox.addEventListener('focus', () => {
+            searchBox.style.background = 'rgba(255, 255, 255, 0.95)';
+        });
+        
+        searchBox.addEventListener('blur', () => {
+            searchBox.style.background = 'rgba(255, 255, 255, 0.9)';
+        });
+    }
+    
+    // Quick links
+    quickLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const url = link.dataset.url;
+            console.log('🔗 Quick link clicked:', url);
+            
+            if (url) {
+                const homepage = windowElement.querySelector('.homepage');
+                const iframe = windowElement.querySelector('#browser-frame');
+                
+                // Hide homepage and show iframe content
+                if (homepage) {
+                    homepage.style.display = 'none';
+                }
+                if (iframe) {
+                    iframe.style.display = 'block';
+                }
+                
+                loadUrl(url);
+            }
+        });
+        
+        // Add hover effects for quick links
+        link.addEventListener('mouseenter', () => {
+            link.style.transform = 'scale(1.05)';
+            link.style.background = 'rgba(255, 255, 255, 0.1)';
+        });
+        
+        link.addEventListener('mouseleave', () => {
+            link.style.transform = 'scale(1)';
+            link.style.background = 'transparent';
+        });
+    });
+    
+    // Add hover effects for all interactive elements
+    [backBtn, forwardBtn, refreshBtn, goBtn, searchBtn].forEach(btn => {
+        if (btn) {
+            btn.addEventListener('mouseenter', () => {
+                this.sounds.play('hover');
+            });
+        }
+    });
+    
+    bookmarks.forEach(bookmark => {
+        bookmark.addEventListener('mouseenter', () => {
+            this.sounds.play('hover');
+        });
+    });
+    
+    quickLinks.forEach(link => {
+        link.addEventListener('mouseenter', () => {
+            this.sounds.play('hover');
+        });
+    });
+    
+    // Initialize browser state
+    console.log('🌐 Initializing browser...');
+    
+    // Ensure iframe has proper attributes
+    const iframe = windowElement.querySelector('#browser-frame');
+    if (iframe) {
+        iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms allow-popups allow-top-navigation allow-popups-to-escape-sandbox');
+        iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+        iframe.style.display = 'none'; // Start hidden
+    }
+    
+    // Initialize with kevs.fyi
+    loadUrl('https://kevs.fyi');
+    
+    console.log('✅ Browser setup complete');
+    console.log('📝 Browser features:');
+    console.log('  - Real website loading via iframes');
+    console.log('  - Smart URL/search detection');
+    console.log('  - Navigation history (back/forward)');
+    console.log('  - Working bookmarks and quick links');
+    console.log('  - CORS/X-Frame-Options error handling');
+    console.log('  - Homepage with integrated search');
+    console.log('🏠 Default page: https://kevs.fyi');
+    console.log('✅ Iframe-friendly sites: kevs.fyi, duckduckgo.com, example.com, httpbin.org');
+    console.log('🔒 Sites that block iframes: google.com, github.com, youtube.com');
+    console.log('💡 Search queries now use DuckDuckGo for better iframe compatibility!');
 };
 
 // Update setupAppFunctionality to include Finder
